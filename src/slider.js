@@ -90,9 +90,7 @@ Control.Slider = Class.create({
     Event.stopObserving(this.track, "mousedown", this.eventMouseDown);
     Event.stopObserving(document, "mouseup", this.eventMouseUp);
     Event.stopObserving(document, "mousemove", this.eventMouseMove);
-    this.handles.each( function(h) {
-      Event.stopObserving(h, "mousedown", slider.eventMouseDown);
-    });
+    this.handles.invoke("stopObserving", "mousedown", slider.eventMouseDown);
   },
   setDisabled: function(){
     this.disabled = true;
@@ -195,7 +193,7 @@ Control.Slider = Class.create({
     }
   },
   updateStyles: function() {
-    this.handles.each( function(h){ Element.removeClassName(h, 'selected') });
+    this.handles.invoke('removeClassName', 'selected');
     Element.addClassName(this.activeHandle, 'selected');
   },
   startDrag: function(event) {
@@ -236,7 +234,7 @@ Control.Slider = Class.create({
   },
   update: function(event) {
    if (this.active) {
-      if (!this.dragging) this.dragging = true;
+      this.dragging = true;
       this.draw(event);
       if (Prototype.Browser.WebKit) window.scrollBy(0,0);
       Event.stop(event);

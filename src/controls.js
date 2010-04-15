@@ -94,17 +94,18 @@ Autocompleter.Base = Class.create({
     if(!this.iefix &&
       (Prototype.Browser.IE) &&
       (Element.getStyle(this.update, 'position')=='absolute')) {
-      new Insertion.After(this.update,
-       '<iframe id="' + this.update.id + '_iefix" '+
-       'style="display:none;position:absolute;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);" ' +
-       'src="javascript:false;" frameborder="0" scrolling="no"></iframe>');
+      Element.insert(this.update, {
+        after: '<iframe id="' + this.update.id + '_iefix" ' +
+        'style="display:none;position:absolute;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);" ' +
+        'src="javascript:false;" frameborder="0" scrolling="no"></iframe>'
+      });
       this.iefix = $(this.update.id+'_iefix');
     }
     if(this.iefix) setTimeout(this.fixIEOverlapping.bind(this), 50);
   },
 
   fixIEOverlapping: function() {
-    Position.clone(this.update, this.iefix, {setTop:(!this.update.style.height)});
+    Element.clonePosition(this.iefix, this.update, {setTop: (!this.update.style.height)});
     this.iefix.style.zIndex = 1;
     this.update.style.zIndex = 2;
     Element.show(this.iefix);
@@ -693,7 +694,7 @@ Ajax.InPlaceEditor = Class.create({
     Object.extend(this.options, Ajax.InPlaceEditor.DefaultCallbacks);
     [this._extraDefaultOptions].flatten().compact().each(function(defs) {
       Object.extend(this.options, defs);
-    }.bind(this));
+    }, this);
   },
   prepareSubmission: function() {
     this._saving = true;
@@ -711,7 +712,7 @@ Ajax.InPlaceEditor = Class.create({
         this.element.observe(pair.key, listener);
       if (this.options.externalControl)
         this.options.externalControl.observe(pair.key, listener);
-    }.bind(this));
+    }, this);
   },
   removeForm: function() {
     if (!this._form) return;
@@ -737,7 +738,7 @@ Ajax.InPlaceEditor = Class.create({
         this.element.stopObserving(pair.key, pair.value);
       if (this.options.externalControl)
         this.options.externalControl.stopObserving(pair.key, pair.value);
-    }.bind(this));
+    }, this);
   },
   wrapUp: function(transport) {
     this.leaveEditMode();
@@ -832,7 +833,7 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
     var marker = ('value' in this.options) ? this.options.value : this._text;
     var textFound = this._collection.any(function(entry) {
       return entry[0] == marker;
-    }.bind(this));
+    }, this);
     this._controls.editor.update('');
     var option;
     this._collection.each(function(entry, index) {
@@ -841,7 +842,7 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
       option.selected = textFound ? entry[0] == marker : 0 == index;
       option.appendChild(document.createTextNode(entry[1]));
       this._controls.editor.appendChild(option);
-    }.bind(this));
+    }, this);
     this._controls.editor.disabled = false;
     Field.scrollFreeActivate(this._controls.editor);
   }

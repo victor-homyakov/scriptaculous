@@ -5,8 +5,9 @@
 // script.aculo.us is freely distributable under the terms of an MIT-style license.
 // For details, see the script.aculo.us web site: http://script.aculo.us/
 
-// experimental, Firefox-only
+// experimental, Firefox && IE only
 Event.simulateMouse = function(element, eventName) {
+  element = $(element);
   var options = Object.extend({
     pointerX: 0,
     pointerY: 0,
@@ -16,27 +17,37 @@ Event.simulateMouse = function(element, eventName) {
     shiftKey: false,
     metaKey:  false
   }, arguments[2] || {});
-  var oEvent = document.createEvent("MouseEvents");
-  oEvent.initMouseEvent(eventName, true, true, document.defaultView, 
-    options.buttons, options.pointerX, options.pointerY, options.pointerX, options.pointerY, 
-    options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, 0, $(element));
-  
+
+  var oEvent;
+  if (document.createEvent && document.dispatchEvent) {
+    oEvent = document.createEvent("MouseEvents");
+    oEvent.initMouseEvent(eventName, true, true, document.defaultView,
+      options.buttons, options.pointerX, options.pointerY, options.pointerX, options.pointerY,
+      options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, 0, element);
+  } else if (document.createEventObject && document.fireEvent) {
+    oEvent = document.createEventObject();
+    Object.extend(oEvent, options);
+  }
+
   if(this.mark) Element.remove(this.mark);
-  this.mark = document.createElement('div');
-  this.mark.appendChild(document.createTextNode(" "));
-  document.body.appendChild(this.mark);
-  this.mark.style.position = 'absolute';
-  this.mark.style.top = options.pointerY + "px";
-  this.mark.style.left = options.pointerX + "px";
-  this.mark.style.width = "5px";
-  this.mark.style.height = "5px;";
-  this.mark.style.borderTop = "1px solid red;";
-  this.mark.style.borderLeft = "1px solid red;";
+  if (!Prototype.Browser.IE) {
+    var style = 'position: absolute; width: 5px; height: 5px;' +
+    'top: #{pointerY}px; left: #{pointerX}px;'.interpolate(options) +
+    'border-top: 1px solid red; border-left: 1px solid red;';
+
+    this.mark = new Element('div', {style: style});
+    this.mark.appendChild(document.createTextNode(" "));
+    document.body.appendChild(this.mark);
+  }
   
   if(this.step)
     alert('['+new Date().getTime().toString()+'] '+eventName+'/'+Test.Unit.inspect(options));
   
-  $(element).dispatchEvent(oEvent);
+  if (document.createEvent && document.dispatchEvent) {
+    element.dispatchEvent(oEvent);
+  } else if (document.createEventObject && document.fireEvent) {
+    element.fireEvent("on" + eventName, oEvent);
+  }
 };
 
 // Note: Due to a fix in Firefox 1.0.5/6 that probably fixed "too much", this doesn't work in 1.0.6 or DP2.

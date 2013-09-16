@@ -41,29 +41,28 @@ var Scriptaculous = {
   load: function() {
     function convertVersionString(versionString) {
       var v = versionString.replace(/_.*|\./g, '');
-      v = parseInt(v + '0'.times(4 - v.length));
+      v = parseInt(v + '0'.times(4 - v.length), 10);
       return versionString.indexOf('_') > -1 ? v - 1 : v;
     }
 
-    if ((typeof Prototype == 'undefined') ||
-      (typeof Element == 'undefined') ||
-      (typeof Element.Methods == 'undefined') ||
-      (convertVersionString(Prototype.Version) <
-        convertVersionString(Scriptaculous.REQUIRED_PROTOTYPE))) {
-      throw ("script.aculo.us requires the Prototype JavaScript framework >= " +
-        Scriptaculous.REQUIRED_PROTOTYPE);
+    var message = "script.aculo.us requires Prototype version >= " + Scriptaculous.REQUIRED_PROTOTYPE;
+
+    if ((typeof Prototype == 'undefined') || (typeof Element == 'undefined') || (typeof Element.Methods == 'undefined')) {
+      throw ("Prototype JavaScript framework not found, " + message);
+    }
+
+    if (convertVersionString(Prototype.Version) < convertVersionString(Scriptaculous.REQUIRED_PROTOTYPE)) {
+      throw ("Version of Prototype JavaScript framework is too old, " + message);
     }
 
     var js = /scriptaculous\.js(\?.*)?$/;
     $$('script[src]').findAll(function(s) {
       return s.src.match(js);
     }).each(function(s) {
-        var path = s.src.replace(js, ''),
-          includes = s.src.match(/\?.*load=([a-z,]*)/);
-        (includes ? includes[1] : 'builder,effects,dragdrop,controls,slider,sound').split(',').each(
-          function(include) {
-            Scriptaculous.require(path + include + '.js')
-          });
+        var path = s.src.replace(js, ''), includes = s.src.match(/\?.*load=([a-z,]*)/);
+        (includes ? includes[1] : 'builder,effects,dragdrop,controls,slider,sound').split(',').each(function(include) {
+          Scriptaculous.require(path + include + '.js');
+        });
       });
   }
 };

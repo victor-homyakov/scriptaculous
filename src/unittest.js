@@ -130,13 +130,14 @@ var Test = {
   }
 };
 
-Test.Unit.Logger = Class.create();
-Test.Unit.Logger.prototype = {
+Test.Unit.Logger = Class.create({
   initialize: function(log) {
     this.log = $(log);
-    if (this.log) {
-      this._createLogTable();
+    if (!this.log) {
+      this.log = new Element("div");
+      Element.insert(document.body, this.log);
     }
+    this._createLogTable();
   },
   start: function(testName) {
     if (!this.log) {
@@ -174,12 +175,7 @@ Test.Unit.Logger.prototype = {
     }
   },
   _createLogTable: function() {
-    this.log.innerHTML =
-      '<div id="logsummary"></div>' +
-        '<table id="logtable">' +
-        '<thead><tr><th>Status</th><th>Test</th><th>Message</th></tr></thead>' +
-        '<tbody id="loglines"></tbody>' +
-        '</table>';
+    this.log.innerHTML = '<div id="logsummary"></div><table id="logtable"><thead><tr><th>Status</th><th>Test</th><th>Message</th></tr></thead><tbody id="loglines"></tbody></table>';
     this.logsummary = $('logsummary');
     this.loglines = $('loglines');
   },
@@ -187,7 +183,7 @@ Test.Unit.Logger.prototype = {
     return txt.escapeHTML().replace(/\n/g, "<br/>");
   },
   addLinksToResults: function() {
-    $$("tr.failed .nameCell").each(function(td) { // todo: limit to children of this.log
+    $$("tr.failed .nameCell,tr.error .nameCell").each(function(td) { // todo: limit to children of this.log
       td.title = "Run only this test";
       Event.observe(td, 'click', function() {
         window.location.search = "?tests=" + td.innerHTML;
@@ -200,85 +196,84 @@ Test.Unit.Logger.prototype = {
       });
     });
   }
-};
+});
 
-Test.Unit.Runner = Class.create();
-Test.Unit.Runner.prototype = {
-  initialize: function(testcases) {
+Test.Unit.Runner = Class.create({
+  initialize: function(testcases, options) {
     this.options = Object.extend({
       testLog: 'testlog'
-    }, arguments[1] || {});
-    this.options.resultsURL = this.parseResultsURLQueryParameter();
-    this.options.tests = this.parseTestsQueryParameter();
-    if (this.options.testLog) {
-      this.options.testLog = $(this.options.testLog) || null;
+    }, options || {});
+    var o = this.options;
+    o.resultsURL = this.parseResultsURLQueryParameter();
+    o.tests = this.parseTestsQueryParameter();
+    if (o.testLog) {
+      o.testLog = $(o.testLog) || null;
     }
-    if (this.options.tests) {
+    if (o.tests) {
       this.tests = [];
-      for (var i = 0; i < this.options.tests.length; i++) {
-        if (/^test/.test(this.options.tests[i])) {
-          this.tests.push(new Test.Unit.Testcase(this.options.tests[i], testcases[this.options.tests[i]], testcases["setup"], testcases["teardown"]));
+      var tests = o.tests;
+      for (var i = 0; i < tests.length; i++) {
+        if (/^test/.test(tests[i])) {
+          this.tests.push(new Test.Unit.Testcase(tests[i], testcases[tests[i]], testcases.setup, testcases.teardown));
         }
       }
+    } else if (o.test) {
+      this.tests = [new Test.Unit.Testcase(o.test, testcases[o.test], testcases.setup, testcases.teardown)];
     } else {
-      if (this.options.test) {
-        this.tests = [new Test.Unit.Testcase(this.options.test, testcases[this.options.test], testcases["setup"], testcases["teardown"])];
-      } else {
-        this.tests = [];
-        for (var testcase in testcases) {
-          if (/^test/.test(testcase)) {
-            this.tests.push(
-              new Test.Unit.Testcase(
-                this.options.context ? ' -> ' + this.options.titles[testcase] : testcase,
-                testcases[testcase], testcases["setup"], testcases["teardown"]
-              ));
-          }
+      this.tests = [];
+      for (var testcase in testcases) {
+        if (/^test/.test(testcase)) {
+          this.tests.push(new Test.Unit.Testcase(o.context ? ' -> ' + o.titles[testcase] : testcase, testcases[testcase], testcases.setup, testcases.teardown));
         }
       }
     }
     this.currentTest = 0;
-    this.logger = new Test.Unit.Logger(this.options.testLog);
-    setTimeout(this.runTests.bind(this), 1000);
+    this.logger = new Test.Unit.Logger(o.testLog);
+    this.runTests.bind(this).delay(1);
   },
   parseResultsURLQueryParameter: function() {
-    return window.location.search.parseQuery()["resultsURL"];
+    var query = window.location.search.parseQuery();
+    return query.resultsURL;
   },
   parseTestsQueryParameter: function() {
-    if (window.location.search.parseQuery()["tests"]) {
-      return window.location.search.parseQuery()["tests"].split(',');
+    var query = window.location.search.parseQuery();
+    if (query.tests) {
+      return query.tests.split(',');
     }
-    ;
   },
   // Returns:
   //  "ERROR" if there was an error,
   //  "FAILURE" if there was a failure, or
   //  "SUCCESS" if there was neither
-  getResult: function() {
-    var hasFailure = false;
+  getResult: function(results) {
+    results = results || [];
     for (var i = 0; i < this.tests.length; i++) {
       if (this.tests[i].errors > 0) {
-        return "ERROR";
+        return results[2] || "ERROR";
       }
       if (this.tests[i].failures > 0) {
-        hasFailure = true;
+        return results[1] || "FAILURE";
       }
     }
-    if (hasFailure) {
-      return "FAILURE";
-    } else {
-      return "SUCCESS";
-    }
+    return results[0] || "SUCCESS";
+  },
+  showResultsInTitle: function() {
+    document.title = this.getResult(["\u2714 Success", "\u2716 Failure", "\u2716 Error", "\u2652 In Progress"]) + " " + document.title;
   },
   postResults: function() {
     if (this.options.resultsURL) {
-      new Ajax.Request(this.options.resultsURL,
-        { method: 'get', parameters: 'result=' + this.getResult(), asynchronous: false });
+      new Ajax.Request(this.options.resultsURL, {
+        method: 'get',
+        parameters: 'result=' + this.getResult(),
+        asynchronous: false
+      });
     }
   },
   runTests: function() {
     var test = this.tests[this.currentTest];
     if (!test) {
       // finished!
+      this.showResultsInTitle();
       this.postResults();
       this.logger.summary(this.summary());
       return;
@@ -287,34 +282,27 @@ Test.Unit.Runner.prototype = {
       this.logger.start(test.name);
     }
     test.run();
+    var delay;
     if (test.isWaiting) {
       this.logger.message("Waiting for " + test.timeToWait + "ms");
-      setTimeout(this.runTests.bind(this), test.timeToWait || 1000);
+      delay = test.timeToWait || 1000;
     } else {
       this.logger.finish(test.status(), test.summary());
       this.currentTest++;
-      // tail recursive, hopefully the browser will skip the stackframe
-      this.runTests();
+      delay = 1;
     }
+    this.runTests.bind(this).delay(delay); // FIX
   },
   summary: function() {
-    var assertions = 0;
-    var failures = 0;
-    var errors = 0;
-    var messages = [];
+    var assertions = 0, failures = 0, errors = 0;
     for (var i = 0; i < this.tests.length; i++) {
       assertions += this.tests[i].assertions;
       failures += this.tests[i].failures;
       errors += this.tests[i].errors;
     }
-    return (
-      (this.options.context ? this.options.context + ': ' : '') +
-        this.tests.length + " tests, " +
-        assertions + " assertions, " +
-        failures + " failures, " +
-        errors + " errors");
+    return ((this.options.context ? this.options.context + ': ' : '') + this.tests.length + " tests, " + assertions + " assertions, " + failures + " failures, " + errors + " errors");
   }
-};
+});
 
 Test.Unit.Assertions = Class.create();
 Test.Unit.Assertions.prototype = {
@@ -579,10 +567,9 @@ Test.Unit.Assertions.prototype = {
   }
 };
 
-Test.Unit.Testcase = Class.create();
-Object.extend(Object.extend(Test.Unit.Testcase.prototype, Test.Unit.Assertions.prototype), {
-  initialize: function(name, test, setup, teardown) {
-    Test.Unit.Assertions.prototype.initialize.bind(this)();
+Test.Unit.Testcase = Class.create(Test.Unit.Assertions, {
+  initialize: function($super, name, test, setup, teardown) {
+    $super();
     this.name = name;
 
     if (typeof test == 'string') {

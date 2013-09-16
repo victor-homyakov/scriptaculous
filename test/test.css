@@ -23,8 +23,7 @@ body {
   border-bottom: 0;
   background: #ffc;
   color: #E8A400;
-  padding: 8px;
-  padding-bottom: 0;
+  padding: 8px 8px 0;
 }
 
 .navigation ul {

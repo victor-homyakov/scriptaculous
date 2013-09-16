@@ -8,41 +8,48 @@
 // For details, see the script.aculo.us web site: http://script.aculo.us/
 
 // experimental, Firefox && IE only
-Event.simulateMouse = function(element, eventName) {
+Event.simulateMouse = function(element, eventName, options) {
   element = $(element);
-  var options = Object.extend({
+  options = Object.extend({
     pointerX: 0,
     pointerY: 0,
-    buttons: 0,
+    button: 0,
     ctrlKey: false,
     altKey: false,
     shiftKey: false,
     metaKey: false
-  }, arguments[2] || {});
+  }, options || {});
 
   var oEvent;
   if (document.createEvent && document.dispatchEvent) {
     oEvent = document.createEvent("MouseEvents");
-    oEvent.initMouseEvent(eventName, true, true, document.defaultView,
-      options.buttons, options.pointerX, options.pointerY, options.pointerX, options.pointerY,
-      options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, 0, element);
+    oEvent.initMouseEvent(eventName, true, true, document.defaultView, options.button, options.pointerX, options.pointerY, options.pointerX, options.pointerY, options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, 0, element);
   } else if (document.createEventObject && document.fireEvent) {
     oEvent = document.createEventObject();
-    Object.extend(oEvent, options);
+    Object.extend(oEvent, Object.extend(options, {
+      detail: 0,
+      screenX: options.pointerX,
+      screenY: options.pointerY,
+      clientX: options.pointerX,
+      clientY: options.pointerY,
+      relatedTarget: element
+    }));
   }
 
   if (this.mark) {
     Element.remove(this.mark);
   }
-  if (!Prototype.Browser.IE) {
-    var style = 'position: absolute; width: 5px; height: 5px;' +
-      'top: #{pointerY}px; left: #{pointerX}px;'.interpolate(options) +
-      'border-top: 1px solid red; border-left: 1px solid red;';
-
-    this.mark = new Element('div', {style: style});
-    this.mark.appendChild(document.createTextNode(" "));
-    document.body.appendChild(this.mark);
-  }
+  this.mark = new Element("div").setStyle({
+    position: "absolute",
+    top: options.pointerY + "px",
+    left: options.pointerX + "px",
+    width: "5px",
+    height: "5px",
+    borderTop: "1px solid red",
+    borderLeft: "1px solid red"
+  });
+  this.mark.appendChild(document.createTextNode(" "));
+  document.body.appendChild(this.mark);
 
   if (this.step) {
     alert('[' + new Date().getTime().toString() + '] ' + eventName + '/' + Test.Unit.inspect(options));
@@ -55,29 +62,65 @@ Event.simulateMouse = function(element, eventName) {
   }
 };
 
-// Note: Due to a fix in Firefox 1.0.5/6 that probably fixed "too much", this doesn't work in 1.0.6 or DP2.
-// You need to downgrade to 1.0.4 for now to get this working
-// See https://bugzilla.mozilla.org/show_bug.cgi?id=289940 for the fix that fixed too much
-Event.simulateKey = function(element, eventName) {
-  var options = Object.extend({
+Event.simulateKey = function(element, eventName, options) {
+  element = $(element);
+  options = Object.extend({
+    //ctrlKey: null, altKey: null, shiftKey: null, metaKey: null
     ctrlKey: false,
     altKey: false,
     shiftKey: false,
     metaKey: false,
     keyCode: 0,
     charCode: 0
-  }, arguments[2] || {});
+  }, options || {});
 
-  var oEvent = document.createEvent("KeyEvents");
-  oEvent.initKeyEvent(eventName, true, true, window,
-    options.ctrlKey, options.altKey, options.shiftKey, options.metaKey,
-    options.keyCode, options.charCode);
-  $(element).dispatchEvent(oEvent);
+  var oEvent;
+  if (document.createEvent && document.dispatchEvent) {
+    try {
+      oEvent = document.createEvent("KeyEvents"); // "KeyboardEvent"
+      oEvent.initKeyEvent(eventName, true, true, window, options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, options.keyCode, options.charCode);
+    } catch (e) {
+      try {
+        oEvent = document.createEvent("Events");
+      } catch (e2) {
+        oEvent = document.createEvent("UIEvents");
+      } finally {
+        oEvent.initEvent(eventName, true, true);
+        Object.extend(oEvent, options);
+      }
+    }
+    element.dispatchEvent(oEvent);
+  } else if (document.createEventObject && document.fireEvent) {
+    oEvent = document.createEventObject();
+    Object.extend(oEvent, options);
+    try {
+      window.event = oEvent;
+    } catch (e3) {
+    }
+    // IE-specific sourceIndex makes sure element is in the document
+    if (element.sourceIndex > 0) {
+      element.fireEvent("on" + eventName, oEvent);
+    }
+  }
 };
 
-Event.simulateKeys = function(element, command) {
-  for (var i = 0; i < command.length; i++) {
-    Event.simulateKey(element, 'keypress', {charCode: command.charCodeAt(i)});
+Event.simulateKeys = function(element, command, full) {
+  element = $(element);
+  for (var i = 0, len = command.length; i < len; ++i) {
+    var code = command.charCodeAt(i);
+    if (full) {
+      Event.simulateKey(element, 'keydown', {
+        keyCode: code
+      });
+    }
+    Event.simulateKey(element, 'keypress', {
+      charCode: code
+    });
+    if (full) {
+      Event.simulateKey(element, 'keyup', {
+        keyCode: code
+      });
+    }
   }
 };
 

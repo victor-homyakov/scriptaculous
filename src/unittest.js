@@ -1,4 +1,4 @@
-/*global $, $$, $A, $F, $H, $R, $w, Ajax, Class, Effect, Element, Enumerable, Event, Field, Form, Prototype, Test */
+/*global $, $$, $A, $H, Ajax, Class, Element, Event, Prototype, Test */
 
 // Copyright (c) 2005-2010 Thomas Fuchs (http://script.aculo.us, http://mir.aculo.us)
 //           (c) 2005-2010 Jon Tirsen (http://www.tirsen.com)
@@ -304,20 +304,13 @@ Test.Unit.Runner = Class.create({
   }
 });
 
-Test.Unit.Assertions = Class.create();
-Test.Unit.Assertions.prototype = {
+Test.Unit.Assertions = Class.create({
   initialize: function() {
-    this.assertions = 0;
-    this.failures = 0;
-    this.errors = 0;
+    this.assertions = this.failures = this.errors = 0;
     this.messages = [];
   },
   summary: function() {
-    return (
-      this.assertions + " assertions, " +
-        this.failures + " failures, " +
-        this.errors + " errors" + "\n" +
-        this.messages.join("\n"));
+    return (this.assertions + " assertions, " + this.failures + " failures, " + this.errors + " errors" + "\n" + this.messages.join("\n"));
   },
   pass: function() {
     this.assertions++;
@@ -334,193 +327,310 @@ Test.Unit.Assertions.prototype = {
     this.messages.push(error.name + ": " + error.message + "(" + Test.Unit.inspect(error) + ")");
   },
   status: function() {
-    if (this.failures > 0) {
-      return 'failed';
-    }
-    if (this.errors > 0) {
-      return 'error';
-    }
-    return 'passed';
+    return (this.failures > 0) ? 'failed' : ((this.errors > 0) ? 'error' : 'passed');
   },
-  assert: function(expression) {
-    var message = arguments[1] || 'assert: got "' + Test.Unit.inspect(expression) + '"';
+  assert: function(expression, message) {
+    message = message || 'assert: got "' + Test.Unit.inspect(expression) + '"';
     try {
-      expression ? this.pass() :
-        this.fail(message);
+      expression ? this.pass() : this.fail(message);
     } catch (e) {
       this.error(e);
     }
   },
-  assertEqual: function(expected, actual) {
-    var message = arguments[2] || "assertEqual";
+  /**
+   * Fails if the result isn't truthy.
+   * @param {Object} expression
+   * @param {String} message
+   */
+  assertTrue: function(expression, message) {
+    this.assert(expression, message);
+  },
+  /**
+   * Fails if the result isn't falsy.
+   * @param {Object} expression
+   * @param {String} message
+   */
+  assertFalse: function(expression, message) {
+    this.assert(!expression, message);
+  },
+  assertEqual: function(expected, actual, message) {
+    message = message || "assertEqual";
     try {
-      (expected == actual) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + Test.Unit.inspect(actual) + '"');
+      (expected == actual) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + Test.Unit.inspect(actual) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertInspect: function(expected, actual) {
-    var message = arguments[2] || "assertInspect";
+  /**
+   * Fails if the expected and actual values can not be compared to be equal.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} message
+   */
+  assertEquals: function(expected, actual, message) {
+    this.assertEqual(expected, actual, message);
+  },
+  assertNotEqual: function(expected, actual, message) {
+    message = message || "assertNotEqual";
     try {
-      (expected == actual.inspect()) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + Test.Unit.inspect(actual) + '"');
+      (expected != actual) ? this.pass() : this.fail(message + ': got "' + Test.Unit.inspect(actual) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertEnumEqual: function(expected, actual) {
-    var message = arguments[2] || "assertEnumEqual";
+  /**
+   * Fails if the expected and actual values can be compared to be equal.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} message
+   */
+  assertNotEquals: function(expected, actual, message) {
+    this.assertNotEqual(expected, actual, message);
+  },
+  assertInspect: function(expected, actual, message) {
+    message = message || "assertInspect";
+    try {
+      (expected == actual.inspect()) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + Test.Unit.inspect(actual) + '"');
+    } catch (e) {
+      this.error(e);
+    }
+  },
+  assertEnumEqual: function(expected, actual, message) {
+    message = message || "assertEnumEqual";
     try {
       $A(expected).length == $A(actual).length &&
         expected.zip(actual).all(function(pair) {
-          return pair[0] == pair[1]
-        }) ?
-        this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) +
-        ', actual ' + Test.Unit.inspect(actual));
+          return pair[0] == pair[1];
+        }) ? this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) + ', actual ' + Test.Unit.inspect(actual));
     } catch (e) {
       this.error(e);
     }
   },
-  assertNotEqual: function(expected, actual) {
-    var message = arguments[2] || "assertNotEqual";
+  assertPairEqual: function(pair) {
+    return pair.all(Object.isArray) ? pair[0].zip(pair[1]).all(this.assertPairEqual, this) : pair[0] == pair[1];
+  },
+  assertHashEqual: function(expected, actual, message) {
+    expected = $H(expected);
+    actual = $H(actual);
+    var expected_array = expected.toArray().sort(), actual_array = actual.toArray().sort();
+    message = message || "assertHashEqual";
+    // from now we recursively zip & compare nested arrays
     try {
-      (expected != actual) ? this.pass() :
-        this.fail(message + ': got "' + Test.Unit.inspect(actual) + '"');
+      expected_array.length == actual_array.length &&
+        expected_array.zip(actual_array).all(this.assertPairEqual, this) ? this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) + ', actual ' + Test.Unit.inspect(actual));
     } catch (e) {
       this.error(e);
     }
   },
-  assertIdentical: function(expected, actual) {
-    var message = arguments[2] || "assertIdentical";
+  assertIdentical: function(expected, actual, message) {
+    message = message || "assertIdentical";
     try {
-      (expected === actual) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + Test.Unit.inspect(actual) + '"');
+      (expected === actual) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + Test.Unit.inspect(actual) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertNotIdentical: function(expected, actual) {
-    var message = arguments[2] || "assertNotIdentical";
+  /**
+   * Fails if the expected and actual values are not references to the same object.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} message
+   */
+  assertSame: function(expected, actual, message) {
+    this.assertIdentical(expected, actual, message);
+  },
+  assertNotIdentical: function(expected, actual, message) {
+    message = message || "assertNotIdentical";
     try {
-      !(expected === actual) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + Test.Unit.inspect(actual) + '"');
+      !(expected === actual) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + Test.Unit.inspect(actual) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertNull: function(obj) {
-    var message = arguments[1] || 'assertNull';
+  /**
+   * Fails if the expected and actual are references to the same object.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} message
+   */
+  assertNotSame: function(expected, actual, message) {
+    this.assertNotIdentical(expected, actual, message);
+  },
+  /**
+   * Fails if the given value is not exactly null.
+   * @param {Object} object
+   * @param {String} message
+   */
+  assertNull: function(object, message) {
+    message = message || 'assertNull';
     try {
-      (obj == null) ? this.pass() :
-        this.fail(message + ': got "' + Test.Unit.inspect(obj) + '"');
+      (object === null) ? this.pass() : this.fail(message + ': expected null, got "' + Test.Unit.inspect(object) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertMatch: function(expected, actual) {
-    var message = arguments[2] || 'assertMatch';
+  /**
+   * Fails if the given value is exactly null.
+   * @param {Object} object
+   * @param {String} message
+   */
+  assertNotNull: function(object, message) {
+    this.assert(object !== null, message || 'assertNotNull');
+  },
+  assertUndefined: function(object, message) {
+    this.assert(typeof object == "undefined", message || 'assertUndefined');
+  },
+  assertNotUndefined: function(object, message) {
+    this.assert(typeof object != "undefined", message || 'assertNotUndefined');
+  },
+  assertNullOrUndefined: function(object, message) {
+    this.assert(object == null, message || 'assertNullOrUndefined');
+  },
+  assertNotNullOrUndefined: function(object, message) {
+    this.assert(object != null, message || 'assertNotNullOrUndefined');
+  },
+  /**
+   * Fails if the given value does not match the given regular expression.
+   * @param {String} expected
+   * @param {String} actual
+   * @param {String} message
+   */
+  assertMatch: function(expected, actual, message) {
+    message = message || 'assertMatch';
     var regex = new RegExp(expected);
     try {
-      (regex.exec(actual)) ? this.pass() :
-        this.fail(message + ' : regex: "' + Test.Unit.inspect(expected) + ' did not match: ' + Test.Unit.inspect(actual) + '"');
+      (regex.exec(actual)) ? this.pass() : this.fail(message + ' : regex: "' + Test.Unit.inspect(expected) + ' did not match: ' + Test.Unit.inspect(actual) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertHidden: function(element) {
-    var message = arguments[1] || 'assertHidden';
-    this.assertEqual("none", element.style.display, message);
+  assertHidden: function(element, message) {
+    this.assertEqual("none", element.style.display, message || 'assertHidden');
   },
-  assertNotNull: function(object) {
-    var message = arguments[1] || 'assertNotNull';
-    this.assert(object != null, message);
-  },
-  assertType: function(expected, actual) {
-    var message = arguments[2] || 'assertType';
+  assertType: function(expected, actual, message) {
+    message = message || 'assertType';
     try {
-      (actual.constructor == expected) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + (actual.constructor) + '"');
+      (actual.constructor == expected) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + (actual.constructor) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertNotOfType: function(expected, actual) {
-    var message = arguments[2] || 'assertNotOfType';
+  assertNotOfType: function(expected, actual, message) {
+    message = message || 'assertNotOfType';
     try {
-      (actual.constructor != expected) ? this.pass() :
-        this.fail(message + ': expected "' + Test.Unit.inspect(expected) +
-          '", actual "' + (actual.constructor) + '"');
+      (actual.constructor != expected) ? this.pass() : this.fail(message + ': expected "' + Test.Unit.inspect(expected) + '", actual "' + (actual.constructor) + '"');
     } catch (e) {
       this.error(e);
     }
   },
-  assertInstanceOf: function(expected, actual) {
-    var message = arguments[2] || 'assertInstanceOf';
+  /**
+   * Fails if the given object is not an instance of given type.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} [message]
+   */
+  assertInstanceOf: function(expected, actual, message) {
+    message = message || 'assertInstanceOf';
     try {
-      (actual instanceof expected) ? this.pass() :
-        this.fail(message + ": object was not an instance of the expected type");
+      (actual instanceof expected) ? this.pass() : this.fail(message + ": object was not an instance of the expected type");
     } catch (e) {
       this.error(e);
     }
   },
-  assertNotInstanceOf: function(expected, actual) {
-    var message = arguments[2] || 'assertNotInstanceOf';
+  /**
+   * Fails if the given object is an instance of given type.
+   * @param {Object} expected
+   * @param {Object} actual
+   * @param {String} [message]
+   */
+  assertNotInstanceOf: function(expected, actual, message) {
+    message = message || 'assertNotInstanceOf';
     try {
-      !(actual instanceof expected) ? this.pass() :
-        this.fail(message + ": object was an instance of the not expected type");
+      !(actual instanceof expected) ? this.pass() : this.fail(message + ": object was an instance of the not expected type");
     } catch (e) {
       this.error(e);
     }
   },
-  assertRespondsTo: function(method, obj) {
-    var message = arguments[2] || 'assertRespondsTo';
+  /**
+   * Fails if the JavaScript type of the value isn't the expected string.
+   * @param {Object} expected
+   * @param {String} actual
+   * @param {String} [message]
+   */
+  assertTypeOf: function(expected, actual, message) {
+    message = message || 'assertTypeOf';
     try {
-      (obj[method] && typeof obj[method] == 'function') ? this.pass() :
-        this.fail(message + ": object doesn't respond to [" + method + "]");
+      (typeof expected === actual) ? this.pass() : this.fail(message + ": type of object was not the expected type");
     } catch (e) {
       this.error(e);
     }
   },
-  assertReturnsTrue: function(method, obj) {
-    var message = arguments[2] || 'assertReturnsTrue';
+  assertRespondsTo: function(method, obj, message) {
+    message = message || 'assertRespondsTo';
+    try {
+      (obj[method] && typeof obj[method] == 'function') ? this.pass() : this.fail(message + ": object doesn't respond to [" + method + "]");
+    } catch (e) {
+      this.error(e);
+    }
+  },
+  assertReturnsTrue: function(method, obj, message) {
+    message = message || 'assertReturnsTrue';
     try {
       var m = obj[method];
       if (!m) {
         m = obj['is' + method.charAt(0).toUpperCase() + method.slice(1)];
       }
-      m() ? this.pass() :
-        this.fail(message + ": method returned false");
+      m() ? this.pass() : this.fail(message + ": method returned false");
     } catch (e) {
       this.error(e);
     }
   },
-  assertReturnsFalse: function(method, obj) {
-    var message = arguments[2] || 'assertReturnsFalse';
+  assertReturnsFalse: function(method, obj, message) {
+    message = message || 'assertReturnsFalse';
     try {
       var m = obj[method];
       if (!m) {
         m = obj['is' + method.charAt(0).toUpperCase() + method.slice(1)];
       }
-      !m() ? this.pass() :
-        this.fail(message + ": method returned true");
+      m() ? this.fail(message + ": method returned true") : this.pass();
     } catch (e) {
       this.error(e);
     }
   },
-  assertRaise: function(exceptionName, method) {
-    var message = arguments[2] || 'assertRaise';
+  assertRaise: function(exceptionName, method, message) {
+    message = message || 'assertRaise';
     try {
       method();
       this.fail(message + ": exception expected but none was raised");
     } catch (e) {
       ((exceptionName == null) || (e.name == exceptionName)) ? this.pass() : this.error(e);
     }
+  },
+  /**
+   * Fails if the code in the method does not throw the error with given name.
+   * @param {String} exceptionName
+   * @param {Function} method
+   * @param {String} message
+   */
+  assertException: function(exceptionName, method, message) {
+    this.assertRaise(exceptionName, method, message);
+  },
+  assertNothingRaised: function(method, message) {
+    message = message || 'assertNothingRaised';
+    try {
+      method();
+      this.pass();
+    } catch (e) {
+      this.fail(message + ": exception was thrown when nothing was expected");
+    }
+  },
+  /**
+   * Fails if the code in the method throws an error.
+   * @param {Function} method
+   * @param {String} message
+   */
+  assertNoException: function(method, message) {
+    this.assertNothingRaised(method, message);
   },
   assertElementsMatch: function() {
     var expressions = $A(arguments), elements = $A(expressions.shift());
@@ -534,38 +644,111 @@ Test.Unit.Assertions.prototype = {
         return true;
       }
       this.fail('assertElementsMatch: (in index ' + index + ') expected ' + expression.inspect() + ' but got ' + element.inspect());
-    }.bind(this)) && this.pass();
+    }, this) && this.pass();
   },
   assertElementMatches: function(element, expression) {
     this.assertElementsMatch([element], expression);
   },
   _isVisible: function(element) {
     element = $(element);
+    this.assertNotNull(element);
     if (!element.parentNode) {
       return true;
     }
-    this.assertNotNull(element);
-    if (element.style && Element.getStyle(element, 'display') == 'none') {
+    if (element.getStyle('display') === 'none' || element.getStyle('visibility') === 'hidden') {
       return false;
     }
-
     return this._isVisible(element.parentNode);
   },
-  assertNotVisible: function(element) {
-    this.assert(!this._isVisible(element), Test.Unit.inspect(element) + " was not hidden and didn't have a hidden parent either. " + ("" || arguments[1]));
+  assertNotVisible: function(element, message) {
+    this.assert(!this._isVisible(element), Test.Unit.inspect(element) + " was not hidden and didn't have a hidden parent either. " + (message || ""));
   },
-  assertVisible: function(element) {
-    this.assert(this._isVisible(element), Test.Unit.inspect(element) + " was not visible. " + ("" || arguments[1]));
+  assertVisible: function(element, message) {
+    this.assert(this._isVisible(element), Test.Unit.inspect(element) + " was not visible. " + (message || ""));
   },
-  benchmark: function(operation, iterations) {
+  assertElement: function(element, message) {
+    message = message || "assertElement";
+    this.assert(element && $(element), message + ": " + Test.Unit.inspect(element) + " is not an Element.");
+  },
+  /**
+   * Fails if the given DOM element does not have given ID.
+   * @param {String} id
+   * @param {Element} element
+   * @param {String} message
+   */
+  assertElementId: function(id, element, message) {
+    message = message || "assertElementId";
+    this.assertElement(element, message);
+    element = $(element);
+    this.assertEqual(id, element.id, message + ": " + Test.Unit.inspect(element) + " does not have id '" + id + "'.");
+  },
+  /**
+   * Fails if the given DOM element does not have given CSS class name.
+   * @param {String} className
+   * @param {Element} element
+   * @param {String} message
+   */
+  assertClassName: function(className, element, message) {
+    message = message || "assertClassName";
+    this.assertElement(element, message);
+    element = $(element);
+    this.assert(element.hasClassName(className), message + ": " + Test.Unit.inspect(element) + " does not have class name '" + className + "'.");
+  },
+  /**
+   * Fails if the given DOM element is not of given tagName.
+   * @param {String} tagName
+   * @param {Element} element
+   * @param {String} [message]
+   */
+  assertTagName: function(tagName, element, message) {
+    message = message || "assertTagName";
+    this.assertElement(element, message);
+    element = $(element);
+    this.assertEqual(tagName, element.tagName.toLowerCase(), message + ": " + Test.Unit.inspect(element) + " does not have tag name '" + tagName + "'.");
+  },
+  /**
+   * Fails if the given value is not a Function.
+   * @param {Object} actual
+   * @param {String} [message]
+   */
+  assertFunction: function(actual, message) {
+    message = message || "assertFunction";
+    this.assert(Object.isFunction(actual), message + ": object is not a Function.");
+  },
+  benchmark: function(operation, iterations, message) {
+    iterations = iterations || 1;
     var startAt = new Date();
-    (iterations || 1).times(operation);
-    var timeTaken = ((new Date()) - startAt);
-    this.info((arguments[2] || 'Operation') + ' finished ' +
-      iterations + ' iterations in ' + (timeTaken / 1000) + 's');
+    iterations.times(operation);
+    var timeTaken = new Date() - startAt;
+    this.info((message || 'Operation') + ' finished ' + iterations + ' iteration(s) in ' + (timeTaken / 1000) + 's');
     return timeTaken;
   }
-};
+});
+
+// TODO assertions:
+// assertNaN([msg], actual)
+// Fails if the given value is not a NaN.
+//
+// assertNotNaN([msg], actual)
+// Fails if the given value is a NaN.
+//
+// assertArray([msg], actual)
+// Fails if the given value is not an Array.
+//
+// assertBoolean([msg], actual)
+// Fails if the given value is not a Boolean. Convenience function to assertTypeOf.
+//
+// assertObject([msg], actual)
+// Fails if the given value is not an Object. Convenience function to assertTypeOf.
+//
+// assertNumber([msg], actual)
+// Fails if the given value is not a Number. Convenience function to assertTypeOf.
+//
+// assertString([msg], actual)
+// Fails if the given value is not a String. Convenience function to assertTypeOf.
+//
+// assertNoMatch([msg], regexp, actual)
+// Fails if the given value matches the given regular expression.
 
 Test.Unit.Testcase = Class.create(Test.Unit.Assertions, {
   initialize: function($super, name, test, setup, teardown) {

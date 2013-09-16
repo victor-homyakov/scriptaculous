@@ -1,4 +1,4 @@
-/*global $, $A, $F, $H, Ajax, Class, Effect, Element, Event, Field, Form, Prototype */
+/*global $, $A */
 
 // Copyright (c) 2005-2010 Thomas Fuchs (http://script.aculo.us, http://mir.aculo.us)
 //

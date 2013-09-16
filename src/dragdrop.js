@@ -374,7 +374,10 @@ var Draggable = Class.create({
     }
 
     if (this.options.zindex) {
-      this.originalZ = parseInt(Element.getStyle(this.element, 'z-index') || 0);
+      // FIXED z-index: auto -> z-index: 0
+      //this.originalZ = parseInt(Element.getStyle(this.element, 'z-index') || 0, 10);
+      this.originalZ = Element.getStyle(this.element, 'z-index');
+      this.originalZ = this.originalZ ? parseInt(this.originalZ, 10) : "auto";
       this.element.style.zIndex = this.options.zindex;
     }
 
@@ -388,15 +391,13 @@ var Draggable = Class.create({
       this.element.parentNode.insertBefore(this._clone, this.element);
     }
 
-    if (this.options.scroll) {
-      if (this.options.scroll == window) {
-        var where = this._getWindowScroll(this.options.scroll);
-        this.originalScrollLeft = where.left;
-        this.originalScrollTop = where.top;
-      } else {
-        this.originalScrollLeft = this.options.scroll.scrollLeft;
-        this.originalScrollTop = this.options.scroll.scrollTop;
+    var s = this.options.scroll;
+    if (s) {
+      if (s == window) {
+        s = this._getWindowScroll();
       }
+      this.originalScrollLeft = s.scrollLeft;
+      this.originalScrollTop = s.scrollTop;
     }
 
     Draggables.notify('onStart', this, event);
@@ -423,34 +424,28 @@ var Draggable = Class.create({
       this.options.change(this);
     }
 
-    if (this.options.scroll) {
+    var s = this.options.scroll;
+    if (s) {
       this.stopScrolling();
 
-      var p;
-      if (this.options.scroll == window) {
-        with (this._getWindowScroll(this.options.scroll)) {
-          p = [ left, top, left + width, top + height ];
-        }
+      var p, sensitivity = this.options.scrollSensitivity;
+      if (s == window) {
+        s = this._getWindowScroll();
+        p = [s.scrollLeft, s.scrollTop];
       } else {
-        p = Position.page(this.options.scroll).toArray();
-        p[0] += this.options.scroll.scrollLeft + Position.deltaX;
-        p[1] += this.options.scroll.scrollTop + Position.deltaY;
-        p.push(p[0] + this.options.scroll.offsetWidth);
-        p.push(p[1] + this.options.scroll.offsetHeight);
+        p = Element.viewportOffset(s).toArray();
+        p[0] += s.scrollLeft + Position.deltaX;
+        p[1] += s.scrollTop + Position.deltaY;
       }
-      var speed = [0, 0];
-      if (pointer[0] < (p[0] + this.options.scrollSensitivity)) {
-        speed[0] = pointer[0] - (p[0] + this.options.scrollSensitivity);
-      }
-      if (pointer[1] < (p[1] + this.options.scrollSensitivity)) {
-        speed[1] = pointer[1] - (p[1] + this.options.scrollSensitivity);
-      }
-      if (pointer[0] > (p[2] - this.options.scrollSensitivity)) {
-        speed[0] = pointer[0] - (p[2] - this.options.scrollSensitivity);
-      }
-      if (pointer[1] > (p[3] - this.options.scrollSensitivity)) {
-        speed[1] = pointer[1] - (p[3] - this.options.scrollSensitivity);
-      }
+      p.push(p[0] + s.offsetWidth);
+      p.push(p[1] + s.offsetHeight);
+
+      p[0] = pointer[0] - (p[0] + sensitivity);
+      p[1] = pointer[1] - (p[1] + sensitivity);
+      p[2] = pointer[0] - (p[2] - sensitivity);
+      p[3] = pointer[1] - (p[3] - sensitivity);
+
+      var speed = [(p[0] < 0) ? p[0] : ((p[2] > 0) ? p[2] : 0), (p[1] < 0) ? p[1] : ((p[3] > 0) ? p[3] : 0)];
       this.startScrolling(speed);
     }
 
@@ -534,9 +529,9 @@ var Draggable = Class.create({
   },
 
   draw: function(point) {
-    var pos = this.element.cumulativeOffset();
-    if (this.options.ghosting) {
-      var r = Position.realOffset(this.element);
+    var pos = this.element.cumulativeOffset(), o = this.options;
+    if (o.ghosting) {
+      var r = Element.cumulativeScrollOffset(this.element);
       pos[0] += r[0] - Position.deltaX;
       pos[1] += r[1] - Position.deltaY;
     }
@@ -545,36 +540,30 @@ var Draggable = Class.create({
     pos[0] -= d[0];
     pos[1] -= d[1];
 
-    if (this.options.scroll && (this.options.scroll != window && this._isScrollChild)) {
-      pos[0] -= this.options.scroll.scrollLeft - this.originalScrollLeft;
-      pos[1] -= this.options.scroll.scrollTop - this.originalScrollTop;
+    if (o.scroll && (o.scroll != window && this._isScrollChild)) {
+      pos[0] -= o.scroll.scrollLeft - this.originalScrollLeft;
+      pos[1] -= o.scroll.scrollTop - this.originalScrollTop;
     }
 
-    var p = [0, 1].map(function(i) {
-      return (point[i] - pos[i] - this.offset[i])
-    }.bind(this));
+    var p = [point[0] - pos[0] - this.offset[0], point[1] - pos[1] - this.offset[1]];
 
-    if (this.options.snap) {
-      if (Object.isFunction(this.options.snap)) {
-        p = this.options.snap(p[0], p[1], this);
+    if (o.snap) {
+      if (Object.isFunction(o.snap)) {
+        p = o.snap(p[0], p[1], this);
+      } else if (Object.isArray(o.snap)) {
+        p[0] = (p[0] / o.snap[0]).round() * o.snap[0];
+        p[1] = (p[1] / o.snap[1]).round() * o.snap[1];
       } else {
-        if (Object.isArray(this.options.snap)) {
-          p = p.map(function(v, i) {
-            return (v / this.options.snap[i]).round() * this.options.snap[i]
-          }.bind(this));
-        } else {
-          p = p.map(function(v) {
-            return (v / this.options.snap).round() * this.options.snap
-          }.bind(this));
-        }
+        p[0] = (p[0] / o.snap).round() * o.snap;
+        p[1] = (p[1] / o.snap).round() * o.snap;
       }
     }
 
     var style = this.element.style;
-    if ((!this.options.constraint) || (this.options.constraint == 'horizontal')) {
+    if ((!o.constraint) || (o.constraint == 'horizontal')) {
       style.left = p[0] + "px";
     }
-    if ((!this.options.constraint) || (this.options.constraint == 'vertical')) {
+    if ((!o.constraint) || (o.constraint == 'vertical')) {
       style.top = p[1] + "px";
     }
 
@@ -601,19 +590,16 @@ var Draggable = Class.create({
   },
 
   scroll: function() {
-    var current = new Date();
-    var delta = current - this.lastScrolled;
+    var current = new Date(), delta = (current - this.lastScrolled) / 1000, s = this.options.scroll;
     this.lastScrolled = current;
-    if (this.options.scroll == window) {
-      with (this._getWindowScroll(this.options.scroll)) {
-        if (this.scrollSpeed[0] || this.scrollSpeed[1]) {
-          var d = delta / 1000;
-          this.options.scroll.scrollTo(left + d * this.scrollSpeed[0], top + d * this.scrollSpeed[1]);
-        }
+    if (s === window) {
+      if (this.scrollSpeed[0] || this.scrollSpeed[1]) {
+        s = this._getWindowScroll();
+        window.scrollTo(s.scrollLeft + delta * this.scrollSpeed[0], s.scrollTop + delta * this.scrollSpeed[1]);
       }
     } else {
-      this.options.scroll.scrollLeft += this.scrollSpeed[0] * delta / 1000;
-      this.options.scroll.scrollTop += this.scrollSpeed[1] * delta / 1000;
+      s.scrollLeft += this.scrollSpeed[0] * delta;
+      s.scrollTop += this.scrollSpeed[1] * delta;
     }
 
     Position.prepare();
@@ -621,8 +607,8 @@ var Draggable = Class.create({
     Draggables.notify('onDrag', this);
     if (this._isScrollChild) {
       Draggables._lastScrollPointer = Draggables._lastScrollPointer || $A(Draggables._lastPointer);
-      Draggables._lastScrollPointer[0] += this.scrollSpeed[0] * delta / 1000;
-      Draggables._lastScrollPointer[1] += this.scrollSpeed[1] * delta / 1000;
+      Draggables._lastScrollPointer[0] += this.scrollSpeed[0] * delta;
+      Draggables._lastScrollPointer[1] += this.scrollSpeed[1] * delta;
       if (Draggables._lastScrollPointer[0] < 0) {
         Draggables._lastScrollPointer[0] = 0;
       }
@@ -637,28 +623,33 @@ var Draggable = Class.create({
     }
   },
 
-  _getWindowScroll: function(w) {
-    var T, L, W, H;
-    with (w.document) {
-      if (w.document.documentElement && documentElement.scrollTop) {
-        T = documentElement.scrollTop;
-        L = documentElement.scrollLeft;
-      } else if (w.document.body) {
-        T = body.scrollTop;
-        L = body.scrollLeft;
-      }
-      if (w.innerWidth) {
-        W = w.innerWidth;
-        H = w.innerHeight;
-      } else if (w.document.documentElement && documentElement.clientWidth) {
-        W = documentElement.clientWidth;
-        H = documentElement.clientHeight;
-      } else {
-        W = body.offsetWidth;
-        H = body.offsetHeight;
-      }
+  _getWindowScroll: function() {
+    var T, L, W, H, w = window, d = w.document;
+
+    if (d.documentElement && d.documentElement.scrollTop) {
+      T = d.documentElement.scrollTop;
+      L = d.documentElement.scrollLeft;
+    } else if (d.body) {
+      T = d.body.scrollTop;
+      L = d.body.scrollLeft;
     }
-    return { top: T, left: L, width: W, height: H };
+    if (w.innerWidth) {
+      W = w.innerWidth;
+      H = w.innerHeight;
+    } else if (d.documentElement && d.documentElement.clientWidth) {
+      W = d.documentElement.clientWidth;
+      H = d.documentElement.clientHeight;
+    } else {
+      W = d.body.offsetWidth;
+      H = d.body.offsetHeight;
+    }
+
+    return {
+      scrollTop: T,
+      scrollLeft: L,
+      offsetWidth: W,
+      offsetHeight: H
+    };
   }
 });
 
@@ -894,19 +885,21 @@ var Sortable = {
     var droponOptions = Sortable.options(dropon);
 
     if (!Element.isParent(dropon, element)) {
-      var index;
-
-      var children = Sortable.findElements(dropon, {tag: droponOptions.tag, only: droponOptions.only});
+      var children = Sortable.findElements(dropon, {
+        tag: droponOptions.tag,
+        only: droponOptions.only
+      });
       var child = null;
 
       if (children) {
         var offset = Element.offsetSize(dropon, droponOptions.overlap) * (1.0 - overlap);
 
-        for (index = 0; index < children.length; index += 1) {
-          if (offset - Element.offsetSize(children[index], droponOptions.overlap) >= 0) {
-            offset -= Element.offsetSize(children[index], droponOptions.overlap);
-          } else if (offset - (Element.offsetSize(children[index], droponOptions.overlap) / 2) >= 0) {
-            child = index + 1 < children.length ? children[index + 1] : null;
+        for (var index = 0, len = children.length; index < len; index += 1) {
+          var childOffset = Element.offsetSize(children[index], droponOptions.overlap);
+          if (offset - childOffset >= 0) {
+            offset -= childOffset;
+          } else if (offset - (childOffset / 2) >= 0) {
+            child = index + 1 < len ? children[index + 1] : null;
             break;
           } else {
             child = children[index];

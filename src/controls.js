@@ -1,3 +1,5 @@
+/*global $, $A, $F, $H, $w, Ajax, Class, Effect, Element, Event, Field, Form, Prototype */
+
 // Copyright (c) 2005-2010 Thomas Fuchs (http://script.aculo.us, http://mir.aculo.us)
 //           (c) 2005-2010 Ivan Krstic (http://blogs.law.harvard.edu/ivan)
 //           (c) 2005-2010 Jon Tirsen (http://www.tirsen.com)
@@ -34,54 +36,60 @@
 // useful when one of the tokens is \n (a newline), as it
 // allows smart autocompletion after linebreaks.
 
-if(typeof Effect == 'undefined')
-  throw("controls.js requires including script.aculo.us' effects.js library");
+if (typeof Effect == 'undefined') {
+  throw ("controls.js requires including script.aculo.us' effects.js library");
+}
 
-var Autocompleter = { };
+var Autocompleter = {};
 Autocompleter.Base = Class.create({
   baseInitialize: function(element, update, options) {
-    element          = $(element);
-    this.element     = element;
-    this.update      = $(update);
-    this.hasFocus    = false;
-    this.changed     = false;
-    this.active      = false;
-    this.index       = 0;
-    this.entryCount  = 0;
+    element = $(element);
+    this.element = element;
+    this.update = $(update);
+    this.hasFocus = false;
+    this.changed = false;
+    this.active = false;
+    this.index = 0;
+    this.entryCount = 0;
     this.oldElementValue = this.element.value;
 
-    if(this.setOptions)
+    if (this.setOptions) {
       this.setOptions(options);
-    else
-      this.options = options || { };
+    } else {
+      this.options = options || {};
+    }
 
-    this.options.paramName    = this.options.paramName || this.element.name;
-    this.options.tokens       = this.options.tokens || [];
-    this.options.frequency    = this.options.frequency || 0.4;
-    this.options.minChars     = this.options.minChars || 1;
-    this.options.onShow       = this.options.onShow ||
-      function(element, update){
-        if(!update.style.position || update.style.position=='absolute') {
+    this.options.paramName = this.options.paramName || this.element.name;
+    this.options.tokens = this.options.tokens || [];
+    this.options.frequency = this.options.frequency || 0.4;
+    this.options.minChars = this.options.minChars || 1;
+    this.options.onShow = this.options.onShow ||
+      function(element, update) {
+        if (!update.style.position || update.style.position == 'absolute') {
           update.style.position = 'absolute';
           Position.clone(element, update, {
             setHeight: false,
             offsetTop: element.offsetHeight
           });
         }
-        Effect.Appear(update,{duration:0.15});
+        Effect.Appear(update, {duration: 0.15});
       };
     this.options.onHide = this.options.onHide ||
-      function(element, update){ new Effect.Fade(update,{duration:0.15}) };
+      function(element, update) {
+        new Effect.Fade(update, {duration: 0.15})
+      };
 
-    if(typeof(this.options.tokens) == 'string')
+    if (typeof(this.options.tokens) == 'string') {
       this.options.tokens = new Array(this.options.tokens);
+    }
     // Force carriage returns as token delimiters anyway
-    if (!this.options.tokens.include('\n'))
+    if (!this.options.tokens.include('\n')) {
       this.options.tokens.push('\n');
+    }
 
     this.observer = null;
 
-    this.element.setAttribute('autocomplete','off');
+    this.element.setAttribute('autocomplete', 'off');
 
     Element.hide(this.update);
 
@@ -90,18 +98,20 @@ Autocompleter.Base = Class.create({
   },
 
   show: function() {
-    if(Element.getStyle(this.update, 'display')=='none') this.options.onShow(this.element, this.update);
-    if(!this.iefix &&
-      (Prototype.Browser.IE) &&
-      (Element.getStyle(this.update, 'position')=='absolute')) {
+    if (Element.getStyle(this.update, 'display') == 'none') {
+      this.options.onShow(this.element, this.update);
+    }
+    if (!this.iefix && Prototype.Browser.IE && (Element.getStyle(this.update, 'position') == 'absolute')) {
       Element.insert(this.update, {
         after: '<iframe id="' + this.update.id + '_iefix" ' +
-        'style="display:none;position:absolute;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);" ' +
-        'src="javascript:false;" frameborder="0" scrolling="no"></iframe>'
+          'style="display:none;position:absolute;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=0);" ' +
+          'src="javascript:false;" frameborder="0" scrolling="no"></iframe>'
       });
-      this.iefix = $(this.update.id+'_iefix');
+      this.iefix = $(this.update.id + '_iefix');
     }
-    if(this.iefix) setTimeout(this.fixIEOverlapping.bind(this), 50);
+    if (this.iefix) {
+      setTimeout(this.fixIEOverlapping.bind(this), 50);
+    }
   },
 
   fixIEOverlapping: function() {
@@ -113,54 +123,66 @@ Autocompleter.Base = Class.create({
 
   hide: function() {
     this.stopIndicator();
-    if(Element.getStyle(this.update, 'display')!='none') this.options.onHide(this.element, this.update);
-    if(this.iefix) Element.hide(this.iefix);
+    if (Element.getStyle(this.update, 'display') != 'none') {
+      this.options.onHide(this.element, this.update);
+    }
+    if (this.iefix) {
+      Element.hide(this.iefix);
+    }
   },
 
   startIndicator: function() {
-    if(this.options.indicator) Element.show(this.options.indicator);
+    if (this.options.indicator) {
+      Element.show(this.options.indicator);
+    }
   },
 
   stopIndicator: function() {
-    if(this.options.indicator) Element.hide(this.options.indicator);
+    if (this.options.indicator) {
+      Element.hide(this.options.indicator);
+    }
   },
 
   onKeyPress: function(event) {
-    if(this.active)
-      switch(event.keyCode) {
-       case Event.KEY_TAB:
-       case Event.KEY_RETURN:
-         this.selectEntry();
-         Event.stop(event);
-       case Event.KEY_ESC:
-         this.hide();
-         this.active = false;
-         Event.stop(event);
-         return;
-       case Event.KEY_LEFT:
-       case Event.KEY_RIGHT:
-         return;
-       case Event.KEY_UP:
-         this.markPrevious();
-         this.render();
-         Event.stop(event);
-         return;
-       case Event.KEY_DOWN:
-         this.markNext();
-         this.render();
-         Event.stop(event);
-         return;
+    if (this.active) {
+      switch (event.keyCode) {
+        case Event.KEY_TAB:
+        case Event.KEY_RETURN:
+          this.selectEntry();
+          Event.stop(event);
+        case Event.KEY_ESC:
+          this.hide();
+          this.active = false;
+          Event.stop(event);
+          return;
+        case Event.KEY_LEFT:
+        case Event.KEY_RIGHT:
+          return;
+        case Event.KEY_UP:
+          this.markPrevious();
+          this.render();
+          Event.stop(event);
+          return;
+        case Event.KEY_DOWN:
+          this.markNext();
+          this.render();
+          Event.stop(event);
+          return;
       }
-     else
-       if(event.keyCode==Event.KEY_TAB || event.keyCode==Event.KEY_RETURN ||
-         (Prototype.Browser.WebKit > 0 && event.keyCode == 0)) return;
+    }
+    else if (event.keyCode == Event.KEY_TAB || event.keyCode == Event.KEY_RETURN ||
+      (Prototype.Browser.WebKit > 0 && event.keyCode == 0)) {
+      return;
+    }
 
     this.changed = true;
     this.hasFocus = true;
 
-    if(this.observer) clearTimeout(this.observer);
-      this.observer =
-        setTimeout(this.onObserverEvent.bind(this), this.options.frequency*1000);
+    if (this.observer) {
+      clearTimeout(this.observer);
+    }
+    this.observer =
+      setTimeout(this.onObserverEvent.bind(this), this.options.frequency * 1000);
   },
 
   activate: function() {
@@ -171,10 +193,9 @@ Autocompleter.Base = Class.create({
 
   onHover: function(event) {
     var element = Event.findElement(event, 'LI');
-    if(this.index != element.autocompleteIndex)
-    {
-        this.index = element.autocompleteIndex;
-        this.render();
+    if (this.index != element.autocompleteIndex) {
+      this.index = element.autocompleteIndex;
+      this.render();
     }
     Event.stop(event);
   },
@@ -194,12 +215,13 @@ Autocompleter.Base = Class.create({
   },
 
   render: function() {
-    if(this.entryCount > 0) {
-      for (var i = 0; i < this.entryCount; i++)
-        this.index==i ?
-          Element.addClassName(this.getEntry(i),"selected") :
-          Element.removeClassName(this.getEntry(i),"selected");
-      if(this.hasFocus) {
+    if (this.entryCount > 0) {
+      for (var i = 0; i < this.entryCount; i++) {
+        this.index == i ?
+          Element.addClassName(this.getEntry(i), "selected") :
+          Element.removeClassName(this.getEntry(i), "selected");
+      }
+      if (this.hasFocus) {
         this.show();
         this.active = true;
       }
@@ -210,14 +232,20 @@ Autocompleter.Base = Class.create({
   },
 
   markPrevious: function() {
-    if(this.index > 0) this.index--;
-      else this.index = this.entryCount-1;
+    if (this.index > 0) {
+      this.index--;
+    } else {
+      this.index = this.entryCount - 1;
+    }
     this.getEntry(this.index).scrollIntoView(true);
   },
 
   markNext: function() {
-    if(this.index < this.entryCount-1) this.index++;
-      else this.index = 0;
+    if (this.index < this.entryCount - 1) {
+      this.index++;
+    } else {
+      this.index = 0;
+    }
     this.getEntry(this.index).scrollIntoView(false);
   },
 
@@ -242,16 +270,20 @@ Autocompleter.Base = Class.create({
     var value = '';
     if (this.options.select) {
       var nodes = $(selectedElement).select('.' + this.options.select) || [];
-      if(nodes.length>0) value = Element.collectTextNodes(nodes[0], this.options.select);
-    } else
+      if (nodes.length > 0) {
+        value = Element.collectTextNodes(nodes[0], this.options.select);
+      }
+    } else {
       value = Element.collectTextNodesIgnoreClass(selectedElement, 'informal');
+    }
 
     var bounds = this.getTokenBounds();
     if (bounds[0] != -1) {
       var newValue = this.element.value.substr(0, bounds[0]);
       var whitespace = this.element.value.substr(bounds[0]).match(/^\s+/);
-      if (whitespace)
+      if (whitespace) {
         newValue += whitespace[0];
+      }
       this.element.value = newValue + value + this.element.value.substr(bounds[1]);
     } else {
       this.element.value = value;
@@ -259,17 +291,18 @@ Autocompleter.Base = Class.create({
     this.oldElementValue = this.element.value;
     this.element.focus();
 
-    if (this.options.afterUpdateElement)
+    if (this.options.afterUpdateElement) {
       this.options.afterUpdateElement(this.element, selectedElement);
+    }
   },
 
   updateChoices: function(choices) {
-    if(!this.changed && this.hasFocus) {
+    if (!this.changed && this.hasFocus) {
       this.update.innerHTML = choices;
       Element.cleanWhitespace(this.update);
       Element.cleanWhitespace(this.update.down());
 
-      if(this.update.firstChild && this.update.down().childNodes) {
+      if (this.update.firstChild && this.update.down().childNodes) {
         this.entryCount =
           this.update.down().childNodes.length;
         for (var i = 0; i < this.entryCount; i++) {
@@ -284,7 +317,7 @@ Autocompleter.Base = Class.create({
       this.stopIndicator();
       this.index = 0;
 
-      if(this.entryCount==1 && this.options.autoSelect) {
+      if (this.entryCount == 1 && this.options.autoSelect) {
         this.selectEntry();
         this.hide();
       } else {
@@ -301,7 +334,7 @@ Autocompleter.Base = Class.create({
   onObserverEvent: function() {
     this.changed = false;
     this.tokenBounds = null;
-    if(this.getToken().length>=this.options.minChars) {
+    if (this.getToken().length >= this.options.minChars) {
       this.getUpdatedChoices();
     } else {
       this.active = false;
@@ -316,18 +349,26 @@ Autocompleter.Base = Class.create({
   },
 
   getTokenBounds: function() {
-    if (null != this.tokenBounds) return this.tokenBounds;
+    if (null != this.tokenBounds) {
+      return this.tokenBounds;
+    }
     var value = this.element.value;
-    if (value.strip().empty()) return [-1, 0];
+    if (value.strip().empty()) {
+      return [-1, 0];
+    }
     var diff = arguments.callee.getFirstDifferencePos(value, this.oldElementValue);
     var offset = (diff == this.oldElementValue.length ? 1 : 0);
     var prevTokenPos = -1, nextTokenPos = value.length;
     var tp;
     for (var index = 0, l = this.options.tokens.length; index < l; ++index) {
       tp = value.lastIndexOf(this.options.tokens[index], diff + offset - 1);
-      if (tp > prevTokenPos) prevTokenPos = tp;
+      if (tp > prevTokenPos) {
+        prevTokenPos = tp;
+      }
       tp = value.indexOf(this.options.tokens[index], diff + offset);
-      if (-1 != tp && tp < nextTokenPos) nextTokenPos = tp;
+      if (-1 != tp && tp < nextTokenPos) {
+        nextTokenPos = tp;
+      }
     }
     return (this.tokenBounds = [prevTokenPos + 1, nextTokenPos]);
   }
@@ -335,19 +376,21 @@ Autocompleter.Base = Class.create({
 
 Autocompleter.Base.prototype.getTokenBounds.getFirstDifferencePos = function(newS, oldS) {
   var boundary = Math.min(newS.length, oldS.length);
-  for (var index = 0; index < boundary; ++index)
-    if (newS[index] != oldS[index])
+  for (var index = 0; index < boundary; ++index) {
+    if (newS[index] != oldS[index]) {
       return index;
+    }
+  }
   return boundary;
 };
 
 Ajax.Autocompleter = Class.create(Autocompleter.Base, {
   initialize: function(element, update, url, options) {
     this.baseInitialize(element, update, options);
-    this.options.asynchronous  = true;
-    this.options.onComplete    = this.onComplete.bind(this);
+    this.options.asynchronous = true;
+    this.options.onComplete = this.onComplete.bind(this);
     this.options.defaultParams = this.options.parameters || null;
-    this.url                   = url;
+    this.url = url;
   },
 
   getUpdatedChoices: function() {
@@ -359,8 +402,9 @@ Ajax.Autocompleter = Class.create(Autocompleter.Base, {
     this.options.parameters = this.options.callback ?
       this.options.callback(this.element, entry) : entry;
 
-    if(this.options.defaultParams)
+    if (this.options.defaultParams) {
       this.options.parameters += '&' + this.options.defaultParams;
+    }
 
     new Ajax.Request(this.url, this.options);
   },
@@ -390,7 +434,7 @@ Ajax.Autocompleter = Class.create(Autocompleter.Base, {
 //                    search anywhere in the string, additionally set
 //                    the option fullSearch to true (default: off).
 //
-// - fullSsearch - Search anywhere in autocomplete array strings.
+// - fullSearch - Search anywhere in autocomplete array strings.
 //
 // - partialChars - How many characters to enter before triggering
 //                   a partial match (unlike minChars, which defines
@@ -423,13 +467,12 @@ Autocompleter.Local = Class.create(Autocompleter.Base, {
       ignoreCase: true,
       fullSearch: false,
       selector: function(instance) {
-        var ret       = []; // Beginning matches
-        var partial   = []; // Inside matches
-        var entry     = instance.getToken();
-        var count     = 0;
+        var ret = []; // Beginning matches
+        var partial = []; // Inside matches
+        var entry = instance.getToken();
+        var count = 0;
 
-        for (var i = 0; i < instance.options.array.length &&
-          ret.length < instance.options.choices ; i++) {
+        for (var i = 0; i < instance.options.array.length && ret.length < instance.options.choices; i++) {
 
           var elem = instance.options.array[i];
           var foundPos = instance.options.ignoreCase ?
@@ -443,7 +486,7 @@ Autocompleter.Local = Class.create(Autocompleter.Base, {
               break;
             } else if (entry.length >= instance.options.partialChars &&
               instance.options.partialSearch && foundPos != -1) {
-              if (instance.options.fullSearch || /\s/.test(elem.substr(foundPos-1,1))) {
+              if (instance.options.fullSearch || /\s/.test(elem.substr(foundPos - 1, 1))) {
                 partial.push("<li>" + elem.substr(0, foundPos) + "<strong>" +
                   elem.substr(foundPos, entry.length) + "</strong>" + elem.substr(
                   foundPos + entry.length) + "</li>");
@@ -457,11 +500,12 @@ Autocompleter.Local = Class.create(Autocompleter.Base, {
 
           }
         }
-        if (partial.length)
+        if (partial.length) {
           ret = ret.concat(partial.slice(0, instance.options.choices - ret.length));
+        }
         return "<ul>" + ret.join('') + "</ul>";
       }
-    }, options || { });
+    }, options || {});
   }
 });
 
@@ -482,18 +526,21 @@ Ajax.InPlaceEditor = Class.create({
     this.url = url;
     this.element = element = $(element);
     this.prepareOptions();
-    this._controls = { };
+    this._controls = {};
     arguments.callee.dealWithDeprecatedOptions(options); // DEPRECATION LAYER!!!
     Object.extend(this.options, options || { });
     if (!this.options.formId && this.element.id) {
       this.options.formId = this.element.id + '-inplaceeditor';
-      if ($(this.options.formId))
+      if ($(this.options.formId)) {
         this.options.formId = '';
+      }
     }
-    if (this.options.externalControl)
+    if (this.options.externalControl) {
       this.options.externalControl = $(this.options.externalControl);
-    if (!this.options.externalControl)
+    }
+    if (!this.options.externalControl) {
       this.options.externalControlOnly = false;
+    }
     this._originalBackground = this.element.getStyle('background-color') || 'transparent';
     this.element.title = this.options.clickToEditText;
     this._boundCancelHandler = this.handleFormCancellation.bind(this);
@@ -504,11 +551,14 @@ Ajax.InPlaceEditor = Class.create({
     this.registerListeners();
   },
   checkForEscapeOrReturn: function(e) {
-    if (!this._editing || e.ctrlKey || e.altKey || e.shiftKey) return;
-    if (Event.KEY_ESC == e.keyCode)
+    if (!this._editing || e.ctrlKey || e.altKey || e.shiftKey) {
+      return;
+    }
+    if (Event.KEY_ESC == e.keyCode) {
       this.handleFormCancellation(e);
-    else if (Event.KEY_RETURN == e.keyCode)
+    } else if (Event.KEY_RETURN == e.keyCode) {
       this.handleFormSubmission(e);
+    }
   },
   createControl: function(mode, handler, extraClasses) {
     var control = this.options[mode + 'Control'];
@@ -518,8 +568,9 @@ Ajax.InPlaceEditor = Class.create({
       btn.type = 'submit';
       btn.value = text;
       btn.className = 'editor_' + mode + '_button';
-      if ('cancel' == mode)
+      if ('cancel' == mode) {
         btn.onclick = this._boundCancelHandler;
+      }
       this._form.appendChild(btn);
       this._controls[mode] = btn;
     } else if ('link' == control) {
@@ -528,8 +579,9 @@ Ajax.InPlaceEditor = Class.create({
       link.appendChild(document.createTextNode(text));
       link.onclick = 'cancel' == mode ? this._boundCancelHandler : this._boundSubmitHandler;
       link.className = 'editor_' + mode + '_link';
-      if (extraClasses)
+      if (extraClasses) {
         link.className += ' ' + extraClasses;
+      }
       this._form.appendChild(link);
       this._controls[mode] = link;
     }
@@ -541,7 +593,9 @@ Ajax.InPlaceEditor = Class.create({
       fld = document.createElement('input');
       fld.type = 'text';
       var size = this.options.size || this.options.cols || 0;
-      if (0 < size) fld.size = size;
+      if (0 < size) {
+        fld.size = size;
+      }
     } else {
       fld = document.createElement('textarea');
       fld.rows = (1 >= this.options.rows ? this.options.autoRows : this.options.rows);
@@ -550,18 +604,23 @@ Ajax.InPlaceEditor = Class.create({
     fld.name = this.options.paramName;
     fld.value = text; // No HTML breaks conversion anymore
     fld.className = 'editor_field';
-    if (this.options.submitOnBlur)
+    if (this.options.submitOnBlur) {
       fld.onblur = this._boundSubmitHandler;
+    }
     this._controls.editor = fld;
-    if (this.options.loadTextURL)
+    if (this.options.loadTextURL) {
       this.loadExternalText();
+    }
     this._form.appendChild(this._controls.editor);
   },
   createForm: function() {
     var ipe = this;
+
     function addText(mode, condition) {
       var text = ipe.options['text' + mode + 'Controls'];
-      if (!text || condition === false) return;
+      if (!text || condition === false) {
+        return;
+      }
       ipe._form.appendChild(document.createTextNode(text));
     };
     this._form = $(document.createElement('form'));
@@ -569,10 +628,12 @@ Ajax.InPlaceEditor = Class.create({
     this._form.addClassName(this.options.formClassName);
     this._form.onsubmit = this._boundSubmitHandler;
     this.createEditField();
-    if ('textarea' == this._controls.editor.tagName.toLowerCase())
+    if ('textarea' == this._controls.editor.tagName.toLowerCase()) {
       this._form.appendChild(document.createElement('br'));
-    if (this.options.onFormCustomization)
+    }
+    if (this.options.onFormCustomization) {
       this.options.onFormCustomization(this, this._form);
+    }
     addText('Before', this.options.okControl || this.options.cancelControl);
     this.createControl('ok', this._boundSubmitHandler);
     addText('Between', this.options.okControl && this.options.cancelControl);
@@ -580,28 +641,38 @@ Ajax.InPlaceEditor = Class.create({
     addText('After', this.options.okControl || this.options.cancelControl);
   },
   destroy: function() {
-    if (this._oldInnerHTML)
+    if (this._oldInnerHTML) {
       this.element.innerHTML = this._oldInnerHTML;
+    }
     this.leaveEditMode();
     this.unregisterListeners();
   },
   enterEditMode: function(e) {
-    if (this._saving || this._editing) return;
+    if (this._saving || this._editing) {
+      return;
+    }
     this._editing = true;
     this.triggerCallback('onEnterEditMode');
-    if (this.options.externalControl)
+    if (this.options.externalControl) {
       this.options.externalControl.hide();
+    }
     this.element.hide();
     this.createForm();
     this.element.parentNode.insertBefore(this._form, this.element);
-    if (!this.options.loadTextURL)
+    if (!this.options.loadTextURL) {
       this.postProcessEditField();
-    if (e) Event.stop(e);
+    }
+    if (e) {
+      Event.stop(e);
+    }
   },
   enterHover: function(e) {
-    if (this.options.hoverClassName)
+    if (this.options.hoverClassName) {
       this.element.addClassName(this.options.hoverClassName);
-    if (this._saving) return;
+    }
+    if (this._saving) {
+      return;
+    }
     this.triggerCallback('onEnterHover');
   },
   getText: function() {
@@ -616,15 +687,17 @@ Ajax.InPlaceEditor = Class.create({
   },
   handleFormCancellation: function(e) {
     this.wrapUp();
-    if (e) Event.stop(e);
+    if (e) {
+      Event.stop(e);
+    }
   },
   handleFormSubmission: function(e) {
-    var form = this._form;
-    var value = $F(this._controls.editor);
+    var form = this._form, value = $F(this._controls.editor);
     this.prepareSubmission();
     var params = this.options.callback(form, value) || '';
-    if (Object.isString(params))
+    if (Object.isString(params)) {
       params = params.toQueryParams();
+    }
     params.editorId = this.element.id;
     if (this.options.htmlResponse) {
       var options = Object.extend({ evalScripts: true }, this.options.ajaxOptions);
@@ -643,7 +716,9 @@ Ajax.InPlaceEditor = Class.create({
       });
       new Ajax.Request(this.url, options);
     }
-    if (e) Event.stop(e);
+    if (e) {
+      Event.stop(e);
+    }
   },
   leaveEditMode: function() {
     this.element.removeClassName(this.options.savingClassName);
@@ -651,17 +726,21 @@ Ajax.InPlaceEditor = Class.create({
     this.leaveHover();
     this.element.style.backgroundColor = this._originalBackground;
     this.element.show();
-    if (this.options.externalControl)
+    if (this.options.externalControl) {
       this.options.externalControl.show();
+    }
     this._saving = false;
     this._editing = false;
     this._oldInnerHTML = null;
     this.triggerCallback('onLeaveEditMode');
   },
   leaveHover: function(e) {
-    if (this.options.hoverClassName)
+    if (this.options.hoverClassName) {
       this.element.removeClassName(this.options.hoverClassName);
-    if (this._saving) return;
+    }
+    if (this._saving) {
+      return;
+    }
     this.triggerCallback('onLeaveHover');
   },
   loadExternalText: function() {
@@ -674,8 +753,9 @@ Ajax.InPlaceEditor = Class.create({
       onSuccess: function(transport) {
         this._form.removeClassName(this.options.loadingClassName);
         var text = transport.responseText;
-        if (this.options.stripLoadedTextTags)
+        if (this.options.stripLoadedTextTags) {
           text = text.stripTags();
+        }
         this._controls.editor.value = text;
         this._controls.editor.disabled = false;
         this.postProcessEditField();
@@ -686,8 +766,9 @@ Ajax.InPlaceEditor = Class.create({
   },
   postProcessEditField: function() {
     var fpc = this.options.fieldPostCreation;
-    if (fpc)
+    if (fpc) {
       $(this._controls.editor)['focus' == fpc ? 'focus' : 'activate']();
+    }
   },
   prepareOptions: function() {
     this.options = Object.clone(Ajax.InPlaceEditor.DefaultOptions);
@@ -703,22 +784,26 @@ Ajax.InPlaceEditor = Class.create({
     this.showSaving();
   },
   registerListeners: function() {
-    this._listeners = { };
+    this._listeners = {};
     var listener;
     $H(Ajax.InPlaceEditor.Listeners).each(function(pair) {
       listener = this[pair.value].bind(this);
       this._listeners[pair.key] = listener;
-      if (!this.options.externalControlOnly)
+      if (!this.options.externalControlOnly) {
         this.element.observe(pair.key, listener);
-      if (this.options.externalControl)
+      }
+      if (this.options.externalControl) {
         this.options.externalControl.observe(pair.key, listener);
+      }
     }, this);
   },
   removeForm: function() {
-    if (!this._form) return;
+    if (!this._form) {
+      return;
+    }
     this._form.remove();
     this._form = null;
-    this._controls = { };
+    this._controls = {};
   },
   showSaving: function() {
     this._oldInnerHTML = this.element.innerHTML;
@@ -734,10 +819,12 @@ Ajax.InPlaceEditor = Class.create({
   },
   unregisterListeners: function() {
     $H(this._listeners).each(function(pair) {
-      if (!this.options.externalControlOnly)
+      if (!this.options.externalControlOnly) {
         this.element.stopObserving(pair.key, pair.value);
-      if (this.options.externalControl)
+      }
+      if (this.options.externalControl) {
         this.options.externalControl.stopObserving(pair.key, pair.value);
+      }
     }, this);
   },
   wrapUp: function(transport) {
@@ -748,9 +835,7 @@ Ajax.InPlaceEditor = Class.create({
   }
 });
 
-Object.extend(Ajax.InPlaceEditor.prototype, {
-  dispose: Ajax.InPlaceEditor.prototype.destroy
-});
+Ajax.InPlaceEditor.prototype.dispose = Ajax.InPlaceEditor.prototype.destroy;
 
 Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
   initialize: function($super, element, url, options) {
@@ -764,10 +849,11 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
     list.size = 1;
     this._controls.editor = list;
     this._collection = this.options.collection || [];
-    if (this.options.loadCollectionURL)
+    if (this.options.loadCollectionURL) {
       this.loadCollection();
-    else
+    } else {
       this.checkForExternalText();
+    }
     this._form.appendChild(this._controls.editor);
   },
 
@@ -780,8 +866,10 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
       onComplete: Prototype.emptyFunction,
       onSuccess: function(transport) {
         var js = transport.responseText.strip();
-        if (!/^\[.*\]$/.test(js)) // TODO: improve sanity check
-          throw('Server returned an invalid collection representation.');
+        // TODO: improve sanity check
+        if (!/^\[.*\]$/.test(js)) {
+          throw ('Server returned an invalid collection representation.');
+        }
         this._collection = eval(js);
         this.checkForExternalText();
       }.bind(this),
@@ -804,10 +892,11 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
 
   checkForExternalText: function() {
     this._text = this.getText();
-    if (this.options.loadTextURL)
+    if (this.options.loadTextURL) {
       this.loadExternalText();
-    else
+    } else {
       this.buildOptionList();
+    }
   },
 
   loadExternalText: function() {
@@ -854,9 +943,13 @@ Ajax.InPlaceCollectionEditor = Class.create(Ajax.InPlaceEditor, {
 //**** API and convert your code to it ASAP!            ****
 
 Ajax.InPlaceEditor.prototype.initialize.dealWithDeprecatedOptions = function(options) {
-  if (!options) return;
+  if (!options) {
+    return;
+  }
   function fallback(name, expr) {
-    if (name in options || expr === undefined) return;
+    if (name in options || expr === undefined) {
+      return;
+    }
     options[name] = expr;
   };
   fallback('cancelControl', (options.cancelLink ? 'link' : (options.cancelButton ? 'button' :
@@ -869,7 +962,7 @@ Ajax.InPlaceEditor.prototype.initialize.dealWithDeprecatedOptions = function(opt
 
 Object.extend(Ajax.InPlaceEditor, {
   DefaultOptions: {
-    ajaxOptions: { },
+    ajaxOptions: {},
     autoRows: 3,                                // Use when multi-line w/ rows == 1
     cancelControl: 'link',                      // 'link'|'button'|false
     cancelText: 'cancel',
@@ -906,13 +999,16 @@ Object.extend(Ajax.InPlaceEditor, {
       // For backward compatibility, this one is bound to the IPE, and passes
       // the element directly.  It was too often customized, so we don't break it.
       new Effect.Highlight(element, {
-        startcolor: this.options.highlightColor, keepBackgroundImage: true });
+        startcolor: this.options.highlightColor,
+        keepBackgroundImage: true
+      });
     },
     onEnterEditMode: null,
     onEnterHover: function(ipe) {
       ipe.element.style.backgroundColor = ipe.options.highlightColor;
-      if (ipe._effect)
+      if (ipe._effect) {
         ipe._effect.cancel();
+      }
     },
     onFailure: function(transport, ipe) {
       alert('Error communication with the server: ' + transport.responseText.stripTags());
@@ -921,8 +1017,10 @@ Object.extend(Ajax.InPlaceEditor, {
     onLeaveEditMode: null,
     onLeaveHover: function(ipe) {
       ipe._effect = new Effect.Highlight(ipe.element, {
-        startcolor: ipe.options.highlightColor, endcolor: ipe.options.highlightEndColor,
-        restorecolor: ipe._originalBackground, keepBackgroundImage: true
+        startcolor: ipe.options.highlightColor,
+        endcolor: ipe.options.highlightEndColor,
+        restorecolor: ipe._originalBackground,
+        keepBackgroundImage: true
       });
     }
   },
@@ -944,16 +1042,20 @@ Ajax.InPlaceCollectionEditor.DefaultOptions = {
 
 Form.Element.DelayedObserver = Class.create({
   initialize: function(element, delay, callback) {
-    this.delay     = delay || 0.5;
-    this.element   = $(element);
-    this.callback  = callback;
-    this.timer     = null;
+    this.delay = delay || 0.5;
+    this.element = $(element);
+    this.callback = callback;
+    this.timer = null;
     this.lastValue = $F(this.element);
-    Event.observe(this.element,'keyup',this.delayedListener.bindAsEventListener(this));
+    Event.observe(this.element, 'keyup', this.delayedListener.bind(this));
   },
   delayedListener: function(event) {
-    if(this.lastValue == $F(this.element)) return;
-    if(this.timer) clearTimeout(this.timer);
+    if (this.lastValue == $F(this.element)) {
+      return;
+    }
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
     this.timer = setTimeout(this.onTimerEvent.bind(this), this.delay * 1000);
     this.lastValue = $F(this.element);
   },

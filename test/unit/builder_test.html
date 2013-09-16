@@ -21,7 +21,7 @@
 <div id="result"></div>
 
 <!-- Tests follow -->
-<script type="text/javascript" language="javascript" charset="utf-8">
+<script type="text/javascript" charset="utf-8">
 // <![CDATA[
 
   // Serializes a node and it's contents to plain old HTML
@@ -39,7 +39,7 @@
       var value = node.readAttribute(attr.nodeName);
       if(attr.nodeName == 'style' && value.endsWith(';'))
         value = value.substr(0, value.length-1); 
-      return attr.nodeName + '="' + value + '"'
+      return attr.nodeName + '="' + value + '"';
     }).compact().sort())).join(' ') + '>' + $A(node.childNodes).map(serializeNode).join('') + 
     '</' + tag + '>';
   }
@@ -54,10 +54,10 @@
       var element = Builder.node('div');
       assertEqual('DIV', element.nodeName);
 
-      var element = Builder.node('div',{id:'mydiv'})
+      var element = Builder.node('div',{id:'mydiv'});
       assertEqual('mydiv', element.id);
             
-      var element = Builder.node('div',{id:'mydiv',className:'one two'})
+      var element = Builder.node('div',{id:'mydiv',className:'one two'});
       assertEqual('mydiv', element.id);
       assertEqual('one two', element.className);
       
@@ -138,7 +138,7 @@
         'q',
         'samp','script','select','small','span','strong','style','sub','sup',
         'table','tbody','td','textarea','tfoot','th','thead','tr','tt',
-        'ul','var']
+        'ul','var'];
         
       XHTML_TAGS.each(function(tag) {
         try {
@@ -170,7 +170,7 @@
       assertEqual('123', $('option_123').innerHTML);
     }},
     
-    testBuilderContatenation: function() { with(this) {
+    testBuilderConcatenation: function() { with(this) {
       var element = Builder.node('div', [Builder.node('span')]);
       assertEqual('DIV', element.nodeName);
       assertEqual(1, element.childNodes.length);
@@ -200,8 +200,8 @@
           "testtext", 2, 3, 4,
           Builder.node('ul',[
             Builder.node('li',{onclick:'alert(\'test\')'},'click me')
-          ]),
-        ]),
+          ])
+        ])
       ]);
       assertEqual('DIV', element.nodeName);
       
@@ -229,8 +229,8 @@
            "testtext", 2, 3, 4,
            UL([
              LI({onclick:'alert(\'test\')'},'click me')
-           ]),
-         ]),
+           ])
+         ])
        ]);
       assertEqual('DIV', element.nodeName);
       

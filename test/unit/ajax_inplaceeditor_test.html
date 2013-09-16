@@ -31,7 +31,7 @@ Second line<br/>
 Third line</div>
 
 <!-- Tests follow -->
-<script type="text/javascript" language="javascript" charset="utf-8">
+<script type="text/javascript" charset="utf-8">
 // <![CDATA[
 
   var IPCE_COLLECTION = [
@@ -43,114 +43,114 @@ Third line</div>
 
   new Test.Unit.Runner({
 
-    setup: function() { with(this) {
-      inPlaceEditor = new Ajax.InPlaceEditor($('tobeedited'), '_ajax_inplaceeditor_result.html', {
+    setup: function() {
+      this.inPlaceEditor = new Ajax.InPlaceEditor($('tobeedited'), '_ajax_inplaceeditor_result.html', {
         externalControl: $('tobeeditedEditControl'),
         ajaxOptions: {method: 'get'} //override so we can use a static for the result
       });
-      inPlaceEditorMultiLine = new Ajax.InPlaceEditor($('tobeeditedMultiLine'), '_ajax_inplaceeditor_result.html', {
+      this.inPlaceEditorMultiLine = new Ajax.InPlaceEditor($('tobeeditedMultiLine'), '_ajax_inplaceeditor_result.html', {
         ajaxOptions: {method: 'get'} //override so we can use a static for the result
       });
-    }},
+    },
 
-    teardown: function() { with(this) {
-      inPlaceEditor.dispose();
-      inPlaceEditorMultiLine.dispose();
-    }},
+    teardown: function() {
+      this.inPlaceEditor.dispose();
+      this.inPlaceEditorMultiLine.dispose();
+    },
 
     // Original-version tests, still pass thx to backward compatibility
 
     // Integration test, tests the entire cycle
-    testInPlaceEditor: function() { with(this) {
+    testInPlaceEditor: function() {
       Event.simulateMouse('tobeedited','click');
-      assertHidden($('tobeedited'));
-      assertNotNull(document.forms[0]);
-      assertEqual("cancel", document.forms[0].lastChild.innerHTML);
-      assertVisible(document.forms[0]);
+      this.assertHidden($('tobeedited'));
+      this.assertNotNull(document.forms[0]);
+      this.assertEqual("cancel", document.forms[0].lastChild.innerHTML);
+      this.assertVisible(document.forms[0]);
 
       Event.simulateMouse(document.forms[0].lastChild,'click');
-      assertNull(document.forms[0]);
-      assertVisible($('tobeedited'));
-      assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
+      this.assertUndefined(document.forms[0]);
+      this.assertVisible($('tobeedited'));
+      this.assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
       Event.simulateMouse('tobeedited','mouseover');
       Event.simulateMouse('tobeedited','click');
 
-      assertEqual("INPUT", document.forms[0].firstChild.tagName);
-      assertEqual("To be edited", document.forms[0].firstChild.value);
-      assertEqual("INPUT", document.forms[0].childNodes[1].tagName);
-      assertEqual("submit", document.forms[0].childNodes[1].type);
-      assertEqual("To be edited", document.forms[0].firstChild.value);
-      assert(Element.hasClassName(document.forms[0], 'inplaceeditor-form'),
+      this.assertEqual("INPUT", document.forms[0].firstChild.tagName);
+      this.assertEqual("To be edited", document.forms[0].firstChild.value);
+      this.assertEqual("INPUT", document.forms[0].childNodes[1].tagName);
+      this.assertEqual("submit", document.forms[0].childNodes[1].type);
+      this.assertEqual("To be edited", document.forms[0].firstChild.value);
+      this.assert(Element.hasClassName(document.forms[0], 'inplaceeditor-form'),
         "form doesn't have proper class: " + document.forms[0].className);
 
       Event.simulateMouse(document.forms[0].childNodes[1],'click');
 
-      assertVisible($('tobeedited'));
-      assertEqual("Saving...", $('tobeedited').innerHTML);
-      assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
-      assert(Element.hasClassName($('tobeedited'), 'inplaceeditor-saving'),
+      this.assertVisible($('tobeedited'));
+      this.assertEqual("Saving...", $('tobeedited').innerHTML);
+      this.assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
+      this.assert(Element.hasClassName($('tobeedited'), 'inplaceeditor-saving'),
         "doesn't have saving class");
 
-      wait(1000, function() {
-        assertEqual("Server received: To be edited", $('tobeedited').innerHTML);
-        assertNull(document.forms[0]);
-        assertVisible($('tobeedited'));
-        assert(!Element.hasClassName($('tobeedited'), 'inplaceeditor-saving'));
+      this.wait(1000, function() {
+        this.assertEqual("Server received: To be edited", $('tobeedited').innerHTML);
+        this.assertUndefined(document.forms[0]);
+        this.assertVisible($('tobeedited'));
+        this.assert(!Element.hasClassName($('tobeedited'), 'inplaceeditor-saving'));
       });
-    }},
+    },
 
-    testHovering: function() { with(this) {
+    testHovering: function() {
       Event.simulateMouse('tobeedited','mouseover');
-      assertEqual("rgb(255, 255, 153)", Element.getStyle('tobeedited','background-color'));
+      this.assertEqual("rgb(255, 255, 153)", Element.getStyle('tobeedited','background-color'));
 
       Event.simulateMouse('tobeedited','mouseout');
-      wait(1100, function() {
-        assertEqual("transparent", Element.getStyle('tobeedited','background-color'),
+      this.wait(1100, function() {
+        this.assertEqual("transparent", Element.getStyle('tobeedited','background-color'),
           "should be transparent after mouse leaves element");
 
         Event.simulateMouse('tobeedited','click');
-      })
-    }},
-
-    testLoadsTextFromServer: function() { with(this) {
-      inPlaceEditor.options.loadTextURL = '_ajax_inplaceeditor_text.html';
-      inPlaceEditor.enterEditMode();
-      assertEqual('Loading...', inPlaceEditor._form.value.value);
-      assert(inPlaceEditor._form.value.disabled);
-      assert(Element.hasClassName(inPlaceEditor._form, 'inplaceeditor-loading'));
-      wait(1000, function() {
-        assertEqual('Text from server', inPlaceEditor._form.value.value);
-        assert(!inPlaceEditor._form.value.disabled);
       });
-    }},
+    },
 
-    testDisposesProperly: function() { with(this) {
-      assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
-      inPlaceEditor.dispose();
-      assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
-      assertVisible($('tobeedited'));
+    testLoadsTextFromServer: function() {
+      this.inPlaceEditor.options.loadTextURL = '_ajax_inplaceeditor_text.html';
+      this.inPlaceEditor.enterEditMode();
+      this.assertEqual('Loading...', this.inPlaceEditor._form.value.value);
+      this.assert(this.inPlaceEditor._form.value.disabled);
+      this.assert(Element.hasClassName(this.inPlaceEditor._form, 'inplaceeditor-loading'));
+      this.wait(1000, function() {
+        this.assertEqual('Text from server', this.inPlaceEditor._form.value.value);
+        this.assert(!this.inPlaceEditor._form.value.disabled);
+      });
+    },
+
+    testDisposesProperly: function() {
+      this.assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
+      this.inPlaceEditor.dispose();
+      this.assertEqual("transparent", Element.getStyle('tobeedited','background-color'));
+      this.assertVisible($('tobeedited'));
       Event.simulateMouse('tobeedited','click');
-      assertVisible($('tobeedited'));
-    }},
+      this.assertVisible($('tobeedited'));
+    },
 
-    testUsesTextAreaWhenMoreThanOneRows: function() { with(this) {
-      inPlaceEditor.options.rows = 5;
-      inPlaceEditor.enterEditMode();
-      assertEqual("TEXTAREA", document.forms[0].firstChild.tagName);
-      assertEqual("BR", document.forms[0].childNodes[1].tagName);
-    }},
+    testUsesTextAreaWhenMoreThanOneRows: function() {
+      this.inPlaceEditor.options.rows = 5;
+      this.inPlaceEditor.enterEditMode();
+      this.assertEqual("TEXTAREA", document.forms[0].firstChild.tagName);
+      this.assertEqual("BR", document.forms[0].childNodes[1].tagName);
+    },
 
-    testCanSpecifyAllTextsThroughOptions: function() { with(this) {
-       // swedish translation ;-)
-      inPlaceEditor.options.okText = "spara";
-      inPlaceEditor.options.cancelText = "avbryt";
-      inPlaceEditor.options.savingText = "Sparar...";
-      inPlaceEditor.enterEditMode();
-      assertEqual("spara", document.forms[0].lastChild.previousSibling.value);
-      assertEqual("avbryt", document.forms[0].lastChild.innerHTML);
-      inPlaceEditor.showSaving();
-      assertEqual("Sparar...", $('tobeedited').innerHTML);
-    }},
+    testCanSpecifyAllTextsThroughOptions: function() {
+      // swedish translation ;-)
+      this.inPlaceEditor.options.okText = "spara";
+      this.inPlaceEditor.options.cancelText = "avbryt";
+      this.inPlaceEditor.options.savingText = "Sparar...";
+      this.inPlaceEditor.enterEditMode();
+      this.assertEqual("spara", document.forms[0].lastChild.previousSibling.value);
+      this.assertEqual("avbryt", document.forms[0].lastChild.innerHTML);
+      this.inPlaceEditor.showSaving();
+      this.assertEqual("Sparar...", $('tobeedited').innerHTML);
+    },
 
     testCanSpecifyFormIdThroughOptions: function() { with(this) {
       inPlaceEditor.enterEditMode();
@@ -174,7 +174,7 @@ Third line</div>
       var called = false;
       inPlaceEditor.options.callback = function(form) {
         called = true;
-      }
+      };
       Event.simulateMouse('tobeedited','click');
       Event.simulateMouse(document.forms[0].childNodes[1],'click');
       assert(called, "callback was not called");
@@ -185,7 +185,7 @@ Third line</div>
       assertNotNull(document.forms[0], "external control didn't work");
       // doesn't work if you click it again while in edit mode
       Event.simulateMouse('tobeeditedEditControl','click');
-      assertNull(document.forms[1], "external control created two forms");
+      assertUndefined(document.forms[1], "external control created two forms");
       assertNotVisible($('tobeeditedEditControl'));
       Event.simulateMouse(document.forms[0].childNodes[2],'click');
       assertVisible($('tobeeditedEditControl'));
@@ -344,17 +344,17 @@ Third line</div>
     testNewCallbacks: function() {with(this) {
       var called = [];
       var opts = {
-        onEnterHover: function() { called.push('onEnterHover') },
-        onEnterEditMode: function() { called.push('onEnterEditMode') },
-        onLeaveEditMode: function() { called.push('onLeaveEditMode') },
+        onEnterHover: function() { called.push('onEnterHover'); },
+        onEnterEditMode: function() { called.push('onEnterEditMode'); },
+        onLeaveEditMode: function() { called.push('onLeaveEditMode'); },
         callback: function(form) {
           called.push('callback');
           return form.serialize();
         },
-        onFailure: function() { called.push('onFailure') },
-        onComplete: function() { called.push('onComplete') },
-        onLeaveEditMode: function() { called.push('onLeaveEditMode') }
-      }
+        onFailure: function() { called.push('onFailure'); },
+        onComplete: function() { called.push('onComplete'); },
+        onLeaveEditMode: function() { called.push('onLeaveEditMode'); }
+      };
       // Proper success
       $('newtbe').update('New to be edited');
       var ipe = new Ajax.InPlaceEditor('newtbe', '_ajax_inplaceeditor_result2.html', opts);
@@ -403,7 +403,7 @@ Third line</div>
           assert(params[1] && params[1].bar == '?' && params[1]['r&d'] == 42);
           ipe.dispose();
           Ajax.Responders.unregister(responder);
-        })
+        });
       });
     }},
 
@@ -513,14 +513,14 @@ Third line</div>
       function override(name, fx) {
         arguments.callee.backups[name] = Field.Methods[name];
         Field.Methods[name] = fx;
-      };
+      }
       override.backups = {};
       function restore() {
         $A(arguments).each(function(n) {
           Field.Methods[name] = override.backups[name];
         });
         Element.addMethods();
-      };
+      }
       override('activate', function(elt) {
         override.backups['activate'](elt);
         activated = true;
@@ -709,7 +709,7 @@ Third line</div>
         var item = editor.options[index];
         assertEqual(ref[0], item.value, 'Incorrect OPTION value');
         assertEqual(ref[1], item.text.strip(), 'Incorrect OPTION text');
-      };
+      }
       assertEqual(1, editor.selectedIndex, 'Did not properly select item');
       editor.selectedIndex = 2;
       Event.simulateMouse(ipe._controls.ok, 'click');

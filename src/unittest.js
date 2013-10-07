@@ -412,12 +412,12 @@ Test.Unit.Assertions = Class.create({
   assertHashEqual: function(expected, actual, message) {
     expected = $H(expected);
     actual = $H(actual);
-    var expected_array = expected.toArray().sort(), actual_array = actual.toArray().sort();
+    var expectedArray = expected.toArray().sort(), actualArray = actual.toArray().sort();
     message = message || "assertHashEqual";
     // from now we recursively zip & compare nested arrays
     try {
-      expected_array.length == actual_array.length &&
-        expected_array.zip(actual_array).all(this.assertPairEqual, this) ? this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) + ', actual ' + Test.Unit.inspect(actual));
+      expectedArray.length == actualArray.length &&
+        expectedArray.zip(actualArray).all(this.assertPairEqual, this) ? this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) + ', actual ' + Test.Unit.inspect(actual));
     } catch (e) {
       this.error(e);
     }

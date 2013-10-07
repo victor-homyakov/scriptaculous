@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE project>
+<project name="scriptaculous" basedir="." default="build">
+
+  <import file="build-minifier.xml" />
+
+  <property name="build.dir" value="./build" />
+  <property name="build.js.dir" value="${build.dir}/js" />
+
+  <property name="js.p.dir" value="${build.js.dir}" />
+  <property name="js.p.name" value="prototype" />
+  <property name="js.s.dir" value="${build.js.dir}" />
+  <property name="js.s.name" value="scriptaculous" />
+
+  <target name="build" depends="build-js" description="Build JS files">
+    <echo>Done</echo>
+  </target>
+
+  <target name="build-js" depends="build-js-proto,build-js-scripty"
+    description="Build JS files (concatenate and minify)">
+    <concat destfile="${build.js.dir}/proto-scripty.js">
+      <filelist dir="${js.p.dir}">
+        <file name="${js.p.name}.js" />
+      </filelist>
+      <filelist dir="${js.s.dir}">
+        <file name="${js.s.name}.js" />
+      </filelist>
+    </concat>
+    <!--<gc-js dir="${build.js.dir}" src="proto-scripty" />-->
+  </target>
+
+  <target name="build-js-proto">
+    <echo>Building prototype ${js.p.name}.js</echo>
+    <copy file="./lib/${js.p.name}.js" todir="${js.p.dir}" preservelastmodified="true" />
+    <!--<gc-js dir="${js.p.dir}" src="${js.p.name}" />
+    <yc-js-all dir="${js.p.dir}" />-->
+  </target>
+
+  <target name="build-js-scripty">
+    <echo>Building scriptaculous ${js.s.name}.js</echo>
+    <concat destfile="${js.s.dir}/${js.s.name}.js">
+      <filelist dir="./src">
+        <file name="builder.js" />
+        <file name="effects.js" />
+        <!--<file name="effects-extensions.js" />-->
+        <!--<file name="transitions.js" />-->
+        <file name="controls.js" />
+        <file name="dragdrop.js" />
+        <file name="slider.js" />
+        <file name="sound.js" />
+      </filelist>
+      <filterchain>
+        <linecontains negate="true">
+          <contains value="/*global" />
+        </linecontains>
+      </filterchain>
+    </concat>
+    <copy file="./src/unittest.js" todir="${js.s.dir}" preservelastmodified="true" />
+    <!--<gc-js dir="${js.s.dir}" src="${js.s.name}" />
+    <yc-js dir="${js.s.dir}" src="${js.s.name}" />-->
+  </target>
+</project>

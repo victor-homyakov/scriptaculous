@@ -200,4 +200,3 @@ class JavaScriptTestTask < ::Rake::TaskLib
     @browsers<<browser
   end
 end
-

@@ -285,7 +285,7 @@ Test.Unit.Runner = Class.create({
     var delay;
     if (test.isWaiting) {
       this.logger.message("Waiting for " + test.timeToWait + "ms");
-      delay = test.timeToWait || 1000;
+      delay = (test.timeToWait || 1000) / 1000;
     } else {
       this.logger.finish(test.status(), test.summary());
       this.currentTest++;

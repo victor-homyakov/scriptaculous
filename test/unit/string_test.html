@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <title>script.aculo.us Unit test file</title>
@@ -11,61 +11,59 @@
 </head>
 <body>
 <h1>script.aculo.us Unit test file</h1>
+
 <p>
   Tests for String.prototype extensions in effects.js
 </p>
 
 <!-- Log output -->
-<div id="testlog"> </div>
+<div id="testlog"></div>
 
 <!-- Tests follow -->
-<script type="text/javascript" language="javascript" charset="utf-8">
-// <![CDATA[
+<script type="text/javascript" charset="utf-8">
+  // <![CDATA[
 
   new Test.Unit.Runner({
-    
-    testStringParseColor: function() { with(this) {
-      assertEqual('#000000', "#000000".parseColor());
-      assertEqual('#000000', "rgb(0,0,0)".parseColor());
-      assertEqual('#000000', "rgb(0, 0, 0)".parseColor());
-      assertEqual('#000000', "#000".parseColor());
 
-      assertEqual('#1', "#1".parseColor());
-      assertEqual('#12', "#12".parseColor());
-      assertEqual('#112233', "#123".parseColor());
-      assertEqual('#1234', "#1234".parseColor());
-      assertEqual('#12345', "#12345".parseColor());
-      assertEqual('#123456', "#123456".parseColor());
-      
-      assertEqual('#abcdef', "#aBcDeF".parseColor());
-      assertEqual('#aabbcc', "#aBc".parseColor());
-      
-      assertEqual('white', "white".parseColor());
-      assertEqual('#123456', "#123456".parseColor('#000000'));  // default to #000000 if not parseable
-      assertEqual('#000000', "white".parseColor('#000000'));  // default to #000000 if not parseable
-            
-      assertEqual('#ffffff', "rgb(255,255,255)".parseColor());
-      assertEqual('#ff0000', "rgb(255,0,0)".parseColor());
-      assertEqual('#00ff00', "rgb(0,255,0)".parseColor());
-      assertEqual('#0000ff', "rgb(0,0,255)".parseColor());
-    }},
-    
-    testStringParseStyle: function() { with(this) {
+    testStringParseColor: function() {
+      this.assertEqual('#000000', "#000000".parseColor());
+      this.assertEqual('#000000', "rgb(0,0,0)".parseColor());
+      this.assertEqual('#000000', "rgb(0, 0, 0)".parseColor());
+      this.assertEqual('#000000', "#000".parseColor());
+
+      this.assertEqual('#1', "#1".parseColor());
+      this.assertEqual('#12', "#12".parseColor());
+      this.assertEqual('#112233', "#123".parseColor());
+      this.assertEqual('#1234', "#1234".parseColor());
+      this.assertEqual('#12345', "#12345".parseColor());
+      this.assertEqual('#123456', "#123456".parseColor());
+
+      this.assertEqual('#abcdef', "#aBcDeF".parseColor());
+      this.assertEqual('#aabbcc', "#aBc".parseColor());
+
+      this.assertEqual('white', "white".parseColor());
+      this.assertEqual('#123456', "#123456".parseColor('#000000'));  // default to #000000 if not parseable
+      this.assertEqual('#000000', "white".parseColor('#000000'));  // default to #000000 if not parseable
+
+      this.assertEqual('#ffffff', "rgb(255,255,255)".parseColor());
+      this.assertEqual('#ff0000', "rgb(255,0,0)".parseColor());
+      this.assertEqual('#00ff00', "rgb(0,255,0)".parseColor());
+      this.assertEqual('#0000ff', "rgb(0,0,255)".parseColor());
+    },
+
+    testStringParseStyle: function() {
       var expected = "#<Hash:{'fontSize': '11px'}>";
       var expectedMultiple = "#<Hash:{'fontSize': '11px', 'width': '780px'}>";
 
-      assertInspect(expected, "font-size:11px".parseStyle());
-      assertInspect(expected, "font-SIZE:  11px".parseStyle());
-      assertInspect(expected, "font-size:11px  ".parseStyle());
-      assertInspect(expected, " Font-size: 11px  ".parseStyle());
-      
-      assertInspect(expectedMultiple, " font-size:  11px;width:780px".parseStyle());
-      
-    }}
+      this.assertInspect(expected, "font-size:11px".parseStyle());
+      this.assertInspect(expected, "font-SIZE:  11px".parseStyle());
+      this.assertInspect(expected, "font-size:11px  ".parseStyle());
+      this.assertInspect(expected, " Font-size: 11px  ".parseStyle());
 
+      this.assertInspect(expectedMultiple, " font-size:  11px;width:780px".parseStyle());
+    }
   });
-  
-// ]]>
+  // ]]>
 </script>
 </body>
 </html>

@@ -1,242 +1,286 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <!-- vim:expandtab=on
   -->
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <title>script.aculo.us Unit test file</title>
   <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link rel="stylesheet" href="../test.css" type="text/css" />
+  <style type="text/css">
+    .selected {
+      background-color: #888;
+    }
+
+    .ac {
+      background-color: white;
+      border: 1px solid black;
+      height: 5em;
+      overflow: auto;
+      position: relative;
+    }
+
+    .ac ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .ac li {
+      margin: 0;
+    }
+  </style>
   <script src="../../lib/prototype.js" type="text/javascript"></script>
   <script src="../../src/scriptaculous.js" type="text/javascript"></script>
   <script src="../../src/unittest.js" type="text/javascript"></script>
-  <link rel="stylesheet" href="../test.css" type="text/css" />
-  <style>
-    .selected { background-color: #888; }
-  </style>
 </head>
 <body>
 <h1>script.aculo.us Unit test file</h1>
-<p>
-  Tests for Ajax.Autocompleter in controls.js.
-</p>
 
+<p>Tests for Ajax.Autocompleter in controls.js.</p>
 <!-- Log output -->
-<div id="testlog"> </div>
-
+<div id="testlog"></div>
 <input id="ac_input" type="text" autocomplete="off" />
-<div id="ac_update" style="display:none;border:1px solid black;background-color:white;position:relative;"></div>
 
+<div id="ac_update" class="ac" style="display:none;"></div>
 <input id="ac_input_br" type="text" autocomplete="off" />
-<div id="ac_update_br" style="display:none;border:1px solid black;background-color:white;position:relative;"></div>
 
+<div id="ac_update_br" class="ac" style="display:none;"></div>
 <input id="ac2_input" type="text" autocomplete="off" />
-<div id="ac2_update" style="display:none;border:1px solid black;background-color:white;position:relative;"></div>
 
+<div id="ac2_update" class="ac" style="display:none;"></div>
 <input id="actoken_input" type="text" autocomplete="off" />
-<div id="actoken_update" style="display:none;border:1px solid black;background-color:white;position:relative;"></div>
 
+<div id="actoken_update" class="ac" style="display:none;"></div>
 <input id="dummy_element" type="text" autocomplete="off" />
-
 <!-- Tests follow -->
-<script type="text/javascript" language="javascript" charset="utf-8">
+<script type="text/javascript" charset="utf-8">
 // <![CDATA[
 
-  
-  new Test.Unit.Runner({
-    
-    // Integration test, tests the entire cycle
-    testAjaxAutocompleter: function() { with(this) {
-      var ac = new Ajax.Autocompleter('ac_input','ac_update','_autocomplete_result.html',
-        { method: 'get' }); //override so we can use a static for the result
-      assertInstanceOf(Ajax.Autocompleter, ac);
-      
-      // box not visible
-      assertNotVisible('ac_update');
-      
-      // focus, but box not visible
-      Event.simulateMouse('ac_input', 'click');
-      assertNotVisible('ac_update');
-      
-      Event.simulateKeys('ac_input','abcdefg');
-      assertEqual('abcdefg', $('ac_input').value);
-      
-      // check box popping up on input
-      wait(1000, function() { with(this) {
-        assertVisible('ac_update');
-        assertEqual('test1', $('ac_update').firstChild.firstChild.innerHTML);
-        assertEqual('test2', $('ac_update').firstChild.firstChild.nextSibling.innerHTML);
-        
-        // intl. characters return (UTF-8)
-        assertEqual('Here we have some international ©∏Á®Äç†∑rß', $('ac_update').firstChild.lastChild.innerHTML);
-                
-        // first entry should be selected
-        assert(Element.hasClassName($('ac_update').firstChild.firstChild, 'selected'),'Selected item should have a className of: selected');
-        
-        Event.simulateKey('ac_input','keypress',{keyCode:Event.KEY_DOWN});
-        
-        // second entry should be selected
-        assert(!Element.hasClassName($('ac_update').firstChild.firstChild),'Item shouldn\'t have a className of: selected');
-        assert(Element.hasClassName($('ac_update').firstChild.firstChild.nextSibling, 'selected'),'Second entry should have a className of: selected');
-        
-        // check selecting with <TAB>
-        Event.simulateKey('ac_input','keypress',{keyCode:Event.KEY_TAB});
-        assertEqual('test2',$('ac_input').value);
-        
-        // check box going away
-        wait(500, function() { with(this) {
-          assertNotVisible('ac_update');
-          
-          // check selecting with mouse click
-          Event.simulateKeys('ac_input','3');
-          assertEqual('test23', $('ac_input').value);
-          wait(1000, function() { with(this) {
-            assertVisible('ac_update');
-            Event.simulateMouse($('ac_update').firstChild.childNodes[4],'click');
-                    
-            wait(1000, function() { with(this) {
-              // tests if removal of 'informal' nodes and HTML escaping works
-              assertEqual('(GET <ME> INSTEAD)',$('ac_input').value);
-              assertNotVisible('ac_update');
-              
-                // check cancelling with <ESC>
-                Event.simulateKeys('ac_input','abcdefg');
-                
-                wait(1000, function() { with(this) {
-                  assertVisible('ac_update');
-                  assertEqual('(GET <ME> INSTEAD)abcdefg', $('ac_input').value);
-                  
-                  Event.simulateKey('ac_input','keypress',{keyCode:Event.KEY_DOWN});
-                  Event.simulateKey('ac_input','keypress',{keyCode:Event.KEY_ESC});
+new Test.Unit.Runner({
 
-                  assertEqual('(GET <ME> INSTEAD)abcdefg', $('ac_input').value);
-                }});
-            }});
-          }});
-        }});
-      }});
-    }},
-    
-    testAfterUpdateElement: function() { with(this) {
-      var ac = new Ajax.Autocompleter('ac2_input','ac2_update','_autocomplete_result.html',
-        { method: 'get',
-          afterUpdateElement: function(element,selectedElement) { 
-            element.value = 'afterupdate:' + selectedElement.tagName; 
+  // Integration test, tests the entire cycle
+  testAjaxAutocompleter: function() {
+    var ac = new Ajax.Autocompleter('ac_input', 'ac_update', '_autocomplete_result.html', {
+      method: 'get'
+    }); //override so we can use a static for the result
+    this.assertInstanceOf(Ajax.Autocompleter, ac);
+
+    // box not visible
+    this.assertNotVisible('ac_update', "Should initially be hidden");
+
+    // focus, but box not visible
+    Event.simulateMouse('ac_input', 'click');
+    this.assertNotVisible('ac_update', "Should be hidden");
+
+    Event.simulateKeys('ac_input', 'abcd');
+    this.assertEqual('abcd', $('ac_input').value);
+
+    // check box popping up on input
+    this.wait(1000, function() {
+      this.assertVisible('ac_update', "Should be visible after keypress");
+      var ul = $('ac_update').firstChild;
+      this.assert(ul && 'ul' == ul.tagName.toLowerCase(), "#ac_update>ul not found");
+      this.assert(ul && ul.firstChild && 'test1' == ul.firstChild.innerHTML, "ul>1st li");
+      this.assert(ul && ul.firstChild && ul.firstChild.nextSibling && 'test2' == ul.firstChild.nextSibling.innerHTML, "ul>2nd li");
+
+      // intl. characters return (UTF-8)
+      this.assertEqual('Here we have some international ©∏Á®Äç†∑rß', ul.lastChild.innerHTML);
+
+      // first entry should be selected
+      this.assert(Element.hasClassName(ul.firstChild, 'selected'), 'Selected item should have a className of: selected');
+
+      Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_DOWN});
+      // second entry should be selected
+      this.assert(ul.firstChild && !Element.hasClassName(ul.firstChild), 'Item should not have a className of: selected');
+      this.assert(ul.firstChild && Element.hasClassName(ul.firstChild.nextSibling, 'selected'), 'Second entry should have a className of: selected');
+
+      // check selecting with <TAB>
+      Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_TAB});
+      this.assertEqual('test2', $('ac_input').value);
+
+      // check box going away
+      this.wait(500, function() {
+        this.assertNotVisible('ac_update', "After Tab");
+
+        // check selecting with mouse click
+        Event.simulateKeys('ac_input', '3');
+        this.assertEqual('test23', $('ac_input').value);
+        this.wait(1000, function() {
+          this.assertVisible('ac_update', "Before mouse click");
+          Event.simulateMouse($('ac_update').firstChild.childNodes[4], 'click');
+
+          this.wait(1000, function() {
+            // tests if removal of 'informal' nodes and HTML escaping works
+            this.assertEqual('(GET <ME> INSTEAD)', $('ac_input').value);
+            this.assertNotVisible('ac_update', "After mouse click");
+
+            // check cancelling with <ESC>
+            Event.simulateKeys('ac_input', 'abcd');
+
+            this.wait(1000, function() {
+              this.assertVisible('ac_update', "Before Esc");
+              this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input').value);
+
+              Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_DOWN});
+              Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_ESC});
+
+              this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input').value);
+            });
+          });
+        });
+      });
+    });
+  },
+
+  testAfterUpdateElement: function() {
+    var ac = new Ajax.Autocompleter('ac2_input', 'ac2_update', '_autocomplete_result.html', {
+      method: 'get',
+      afterUpdateElement: function(element, selectedElement) {
+        element.value = 'afterupdate:' + selectedElement.tagName;
+      }
+    });
+    this.assertInstanceOf(Ajax.Autocompleter, ac);
+
+    Event.simulateMouse('ac2_input', 'click');
+    Event.simulateKeys('ac2_input', 'abcd');
+
+    this.wait(1000, function() {
+      this.assertVisible('ac2_update');
+      Event.simulateKey('ac2_input', 'keypress', {keyCode: Event.KEY_TAB});
+
+      this.assertEqual('afterupdate:LI', $('ac2_input').value);
+    });
+  },
+
+  testGetFirstDifferencePos: function() {
+    var fdp = Autocompleter.Base.prototype.getTokenBounds.getFirstDifferencePos;
+    this.assertEqual(0, fdp('', ''));
+    this.assertEqual(0, fdp('t', ''));
+    this.assertEqual(1, fdp('te', 't'));
+    this.assertEqual(4, fdp('test2', 'test1'));
+    this.assertEqual(5, fdp('test1b', 'test1'));
+    this.assertEqual(12, fdp('test1b,test3', 'test1b,test3'));
+  },
+
+  testGetToken: function() {
+    var e = new Element('input');
+    //e.value = '1';
+    this.assertEqual('', e.value);
+
+    var ac = new Ajax.Autocompleter(e, 'ac_update', '_autocomplete_result.html', {
+      tokens: ',',
+      method: 'get'
+    });
+    this.assertEqual(e.value, ac.oldElementValue);
+    this.assertEqual('', ac.getToken());
+  },
+
+  testTokenizing: function() {
+    var actoken = new Ajax.Autocompleter('actoken_input', 'ac_update', '_autocomplete_result.html', {
+      tokens: ',',
+      method: 'get'
+    });
+    this.assertInstanceOf(Ajax.Autocompleter, actoken);
+
+    Event.simulateKeys('actoken_input', 'abc');
+
+    this.wait(1000, function() {
+      Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+      this.assertEqual('test1', $('actoken_input').value);
+      Event.simulateKeys('actoken_input', ',abc');
+      this.wait(1000, function() {
+        Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_DOWN});
+        Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+        this.assertEqual('test1,test2', $('actoken_input').value);
+
+        // Simulating KEY_LEFT's prior to a 'b' doesn't work!  So slightly ugly here...
+        $('actoken_input').value = 'test1b,test2';
+        actoken.onObserverEvent();
+        this.wait(1000, function() {
+          for (var index = 0; index < 2; ++index) {
+            Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_DOWN});
           }
-         });
-      assertInstanceOf(Ajax.Autocompleter, ac);
-      
-      Event.simulateMouse('ac2_input', 'click');
-      Event.simulateKeys('ac2_input','abcdefg');
-      
-      wait(1000, function() { with(this) {
-        assertVisible('ac2_update');
-        Event.simulateKey('ac2_input','keypress',{keyCode:Event.KEY_TAB});
-        
-        assertEqual('afterupdate:LI',$('ac2_input').value);
-      }});
-    }},
-    
-    testTokenizing: function() { with(this) {
-      var actoken = new Ajax.Autocompleter('actoken_input','ac_update','_autocomplete_result.html',
-        { tokens:',', method: 'get' });
-      assertInstanceOf(Ajax.Autocompleter, actoken);
-      
-      Event.simulateKeys('actoken_input','abc');
-      
-      wait(1000, function() { with(this) {
-        Event.simulateKey('actoken_input','keypress',{keyCode:Event.KEY_TAB});
-        assertEqual('test1',$('actoken_input').value);
-        Event.simulateKeys('actoken_input',',abc');
-        wait(1000, function() { with(this) {
-          Event.simulateKey('actoken_input','keypress',{keyCode:Event.KEY_DOWN});
-          Event.simulateKey('actoken_input','keypress',{keyCode:Event.KEY_TAB});
-          assertEqual('test1,test2',$('actoken_input').value);
-          // Simulating KEY_LEFT's prior to a 'b' doesn't work!  So slightly ugly here...
-          $('actoken_input').value = 'test1b,test2';
-          actoken.onObserverEvent(); 
-          wait(1000, function() { with(this) {
-            for (var index = 0; index < 2; ++index)
-              Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_DOWN});
-            Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
-            assertEqual('test3,test2', $('actoken_input').value);
-          }});
-        }});
-      }});
-    }},
-    
-    // Same integration test, results has no linebreaks
-    testAjaxAutocompleterNoLinebreaksInResult: function() { with(this) {
-      var ac = new Ajax.Autocompleter('ac_input_br','ac_update_br','_autocomplete_result_nobr.html',
+          Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+          this.assertEqual('test3,test2', $('actoken_input').value);
+        });
+      });
+    });
+  },
+
+// Same integration test, results has no linebreaks
+  testAjaxAutocompleterNoLinebreaksInResult: function() {
+    var ac = new Ajax.Autocompleter('ac_input_br', 'ac_update_br', '_autocomplete_result_nobr.html',
         { method: 'get' }); //override so we can use a static for the result
-      assertInstanceOf(Ajax.Autocompleter, ac);
+    this.assertInstanceOf(Ajax.Autocompleter, ac);
 
-      // box not visible
-      assertNotVisible('ac_update_br');
+    // box not visible
+    this.assertNotVisible('ac_update_br');
 
-      // focus, but box not visible
-      Event.simulateMouse('ac_input_br', 'click');
-      assertNotVisible('ac_update_br');
+    // focus, but box not visible
+    Event.simulateMouse('ac_input_br', 'click');
+    this.assertNotVisible('ac_update_br');
 
-      Event.simulateKeys('ac_input_br','abcdefg');
-      assertEqual('abcdefg', $('ac_input_br').value);
+    Event.simulateKeys('ac_input_br', 'abcd');
+    this.assertEqual('abcd', $('ac_input_br').value);
 
-      // check box popping up on input
-      wait(1000, function() { with(this) {
-        assertVisible('ac_update_br');
-        assertEqual('test1', $('ac_update_br').firstChild.firstChild.innerHTML);
-        assertEqual('test2', $('ac_update_br').firstChild.firstChild.nextSibling.innerHTML);
+    // check box popping up on input
+    this.wait(1000, function() {
+      this.assertVisible('ac_update_br');
+      this.assertEqual('test1', $('ac_update_br').firstChild.firstChild.innerHTML);
+      this.assertEqual('test2', $('ac_update_br').firstChild.firstChild.nextSibling.innerHTML);
 
-        // intl. characters return (UTF-8)
-        assertEqual('Here we have some international ©∏Á®Äç†∑rß', $('ac_update_br').firstChild.lastChild.innerHTML);
+      // intl. characters return (UTF-8)
+      this.assertEqual('Here we have some international ©∏Á®Äç†∑rß', $('ac_update_br').firstChild.lastChild.innerHTML);
 
-        // first entry should be selected
-        assert(Element.hasClassName($('ac_update_br').firstChild.firstChild, 'selected'),'Selected item should have a className of: selected');
+      // first entry should be selected
+      this.assert(Element.hasClassName($('ac_update_br').firstChild.firstChild, 'selected'), 'Selected item should have a className of: selected');
 
-        Event.simulateKey('ac_input_br','keypress',{keyCode:Event.KEY_DOWN});
+      Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_DOWN});
 
-        // second entry should be selected
-        assert(!Element.hasClassName($('ac_update_br').firstChild.firstChild),'Item shouldn\'t have a className of: selected');
-        assert(Element.hasClassName($('ac_update_br').firstChild.firstChild.nextSibling, 'selected'),'Second entry should have a className of: selected');
+      // second entry should be selected
+      this.assert(!Element.hasClassName($('ac_update_br').firstChild.firstChild), 'Item should not have a className of: selected');
+      this.assert(Element.hasClassName($('ac_update_br').firstChild.firstChild.nextSibling, 'selected'), 'Second entry should have a className of: selected');
 
-        // check selecting with <TAB>
-        Event.simulateKey('ac_input_br','keypress',{keyCode:Event.KEY_TAB});
-        assertEqual('test2',$('ac_input_br').value);
+      // check selecting with <TAB>
+      Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_TAB});
+      this.assertEqual('test2', $('ac_input_br').value);
 
-        // check box going away
-        wait(500, function() { with(this) {
-          assertNotVisible('ac_update_br');
+      // check box going away
+      this.wait(500, function() {
+        this.assertNotVisible('ac_update_br');
 
-          // check selecting with mouse click
-          Event.simulateKeys('ac_input_br','3');
-          assertEqual('test23', $('ac_input_br').value);
-          wait(1000, function() { with(this) {
-            assertVisible('ac_update_br');
-            Event.simulateMouse($('ac_update_br').firstChild.childNodes[4],'click');
+        // check selecting with mouse click
+        Event.simulateKeys('ac_input_br', '3');
+        this.assertEqual('test23', $('ac_input_br').value);
 
-            wait(1000, function() { with(this) {
-              // tests if removal of 'informal' nodes and HTML escaping works
-              assertEqual('(GET <ME> INSTEAD)',$('ac_input_br').value);
-              assertNotVisible('ac_update_br');
+        this.wait(1000, function() {
+          this.assertVisible('ac_update_br');
+          Event.simulateMouse($('ac_update_br').firstChild.childNodes[4], 'click');
 
-                // check cancelling with <ESC>
-                Event.simulateKeys('ac_input_br','abcdefg');
+          this.wait(1000, function() {
+            // tests if removal of 'informal' nodes and HTML escaping works
+            this.assertEqual('(GET <ME> INSTEAD)', $('ac_input_br').value);
+            this.assertNotVisible('ac_update_br');
 
-                wait(1000, function() { with(this) {
-                  assertVisible('ac_update_br');
-                  assertEqual('(GET <ME> INSTEAD)abcdefg', $('ac_input_br').value);
+            // check cancelling with <ESC>
+            Event.simulateKeys('ac_input_br', 'abcd');
 
-                  Event.simulateKey('ac_input_br','keypress',{keyCode:Event.KEY_DOWN});
-                  Event.simulateKey('ac_input_br','keypress',{keyCode:Event.KEY_ESC});
+            this.wait(1000, function() {
+              this.assertVisible('ac_update_br');
+              this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input_br').value);
 
-                  assertEqual('(GET <ME> INSTEAD)abcdefg', $('ac_input_br').value);
-                }});
-            }});
-          }});
-        }});
-      }});
-    }}
+              Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_DOWN});
+              Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_ESC});
 
-  });
+              this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input_br').value);
+            });
+          });
+        });
+      });
+    });
+  }
+});
 // ]]>
 </script>
 </body>

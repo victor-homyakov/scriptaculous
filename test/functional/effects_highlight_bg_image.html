@@ -14,26 +14,27 @@ Li = {
 	onMouseDown_without: function(event) {
 		new Effect.Highlight(this);
 	}
-}
+};
 
 window.onload = function() {
 	var li = $("with").getElementsByTagName('LI');
 	for (var i = 0; i < li.length; i++) {
 		li[i].onmousedown = Li.onMouseDown_image.bindAsEventListener(li[i]);
 	}
-	var li = $("without").getElementsByTagName('LI');
+	li = $("without").getElementsByTagName('LI');
 	for (i = 0; i < li.length; i++) {
 		li[i].onmousedown = Li.onMouseDown_without.bindAsEventListener(li[i]);
 	}
-}
-
+};
 //]]>
 </script>
 <style type="text/css">
 body {	color: black;	background-color: white;
-	font-family: Verdana, Arial, Helvetica, sans-serif;}ul {	list-style: none;	margin:0; padding:0;}
+	font-family: Verdana, Arial, Helvetica, sans-serif;}ul {	list-style: none;	margin: 0;
+	padding: 0;}
 li  {
-	margin: 3px 0; padding: 3px 3em 3px 24px;	border: 2px solid #456;	background-image: url(icon.png);	background-repeat: no-repeat;	background-position: 3px 3px;
+	margin: 3px 0;
+	padding: 3px 3em 3px 24px;	border: 2px solid #456;	background: url(icon.png) no-repeat 3px 3px;
 }
 #with li {background-color: #cde;}
 #without li {background-color: #ced;}</style>

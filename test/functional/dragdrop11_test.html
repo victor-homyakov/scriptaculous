@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Drag Drop Bug</title>
+  <style type="text/css">
+    .drop-area {
+      overflow: auto;
+      width: 140px;
+      height: 80px;
+    }
+
+    .drop-zone {
+      border: 1px solid #999999;
+      width: 50px;
+      height: 50px;
+      float: left;
+      display: inline-block;
+    }
+
+    .draggable {
+      border: 1px solid #999999;
+      width: 50px;
+      height: 50px;
+      cursor: move;
+    }
+  </style>
+  <script src="../../lib/prototype.js" type="text/javascript"></script>
+  <script src="../../src/scriptaculous.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    function go() {
+      new Draggable('draggable-1');
+      Droppables.add('drop-1', {
+        onDrop: function(element) {
+          $('out').update('dropped on 1');
+        }
+      });
+      Droppables.add('drop-2', {
+        onDrop: function(element) {
+          $('out').update('dropped on 2');
+        }
+      });
+      Droppables.add('drop-3', {
+        onDrop: function(element) {
+          $('out').update('dropped on 3');
+        }
+      });
+      Droppables.add('drop-4', {
+        onDrop: function(element) {
+          $('out').update('dropped on 4');
+        }
+      });
+      Droppables.add('drop-5', {
+        onDrop: function(element) {
+          $('out').update('dropped on 5');
+        }
+      });
+      Droppables.add('drop-6', {
+        onDrop: function(element) {
+          $('out').update('dropped on 6');
+        }
+      });
+    }
+  </script>
+</head>
+<body onload="go();">
+<div class="drop-area">
+  <table>
+    <tbody>
+    <tr>
+      <td>
+        <div id="drop-1" class="drop-zone">1</div>
+      </td>
+      <td>
+        <div id="drop-2" class="drop-zone">2</div>
+      </td>
+      <td>
+        <div id="drop-3" class="drop-zone">3</div>
+      </td>
+      <td>
+        <div id="drop-4" class="drop-zone">4</div>
+      </td>
+      <td>
+        <div id="drop-5" class="drop-zone">5</div>
+      </td>
+      <td>
+        <div id="drop-6" class="drop-zone">6</div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+<div id="draggable-1" class="draggable">drag me</div>
+<div id="out">output</div>
+</body>
+</html>

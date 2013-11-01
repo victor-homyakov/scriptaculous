@@ -1,7 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<!-- vim:expandtab=on
-  -->
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <title>script.aculo.us Unit test file</title>
@@ -56,6 +54,17 @@
 <!-- Tests follow -->
 <script type="text/javascript" charset="utf-8">
 // <![CDATA[
+function kd(ac, keyCode) {
+  //Event.simulateKey(ac.element, 'keydown', {keyCode: keyCode});
+  if (typeof keyCode == "string") {
+    keyCode = keyCode.charCodeAt(0);
+  }
+  ac.onKeyDown({
+    keyCode: keyCode,
+    preventDefault: Prototype.emptyFunction,
+    stopPropagation: Prototype.emptyFunction
+  });
+}
 
 new Test.Unit.Runner({
 
@@ -73,7 +82,12 @@ new Test.Unit.Runner({
     Event.simulateMouse('ac_input', 'click');
     this.assertNotVisible('ac_update', "Should be hidden");
 
-    Event.simulateKeys('ac_input', 'abcd');
+    kd(ac, 'a');
+    kd(ac, 'b');
+    kd(ac, 'c');
+    kd(ac, 'd');
+    ac.element.value += 'abcd';
+    //Event.simulateKeys('ac_input', 'abcd');
     this.assertEqual('abcd', $('ac_input').value);
 
     // check box popping up on input
@@ -90,13 +104,13 @@ new Test.Unit.Runner({
       // first entry should be selected
       this.assert(Element.hasClassName(ul.firstChild, 'selected'), 'Selected item should have a className of: selected');
 
-      Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_DOWN});
+      kd(ac, Event.KEY_DOWN);
       // second entry should be selected
       this.assert(ul.firstChild && !Element.hasClassName(ul.firstChild), 'Item should not have a className of: selected');
       this.assert(ul.firstChild && Element.hasClassName(ul.firstChild.nextSibling, 'selected'), 'Second entry should have a className of: selected');
 
       // check selecting with <TAB>
-      Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_TAB});
+      kd(ac, Event.KEY_TAB);
       this.assertEqual('test2', $('ac_input').value);
 
       // check box going away
@@ -104,7 +118,10 @@ new Test.Unit.Runner({
         this.assertNotVisible('ac_update', "After Tab");
 
         // check selecting with mouse click
-        Event.simulateKeys('ac_input', '3');
+        //Event.simulateKeys('ac_input', '3');
+        kd(ac, '3');
+        ac.element.value += '3';
+
         this.assertEqual('test23', $('ac_input').value);
         this.wait(1000, function() {
           this.assertVisible('ac_update', "Before mouse click");
@@ -116,13 +133,19 @@ new Test.Unit.Runner({
             this.assertNotVisible('ac_update', "After mouse click");
 
             // check cancelling with <ESC>
-            Event.simulateKeys('ac_input', 'abcd');
+            //Event.simulateKeys('ac_input', 'abcd');
+            kd(ac, 'a');
+            kd(ac, 'b');
+            kd(ac, 'c');
+            kd(ac, 'd');
+            ac.element.value += 'abcd';
 
             this.wait(1000, function() {
               this.assertVisible('ac_update', "Before Esc");
               this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input').value);
 
-              Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_DOWN});
+              kd(ac, Event.KEY_DOWN);
+              kd(ac, Event.KEY_ESC);
               Event.simulateKey('ac_input', 'keypress', {keyCode: Event.KEY_ESC});
 
               this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input').value);
@@ -143,12 +166,16 @@ new Test.Unit.Runner({
     this.assertInstanceOf(Ajax.Autocompleter, ac);
 
     Event.simulateMouse('ac2_input', 'click');
-    Event.simulateKeys('ac2_input', 'abcd');
+    //Event.simulateKeys('ac2_input', 'abcd');
+    kd(ac, 'a');
+    kd(ac, 'b');
+    kd(ac, 'c');
+    kd(ac, 'd');
+    ac.element.value += 'abcd';
 
     this.wait(1000, function() {
       this.assertVisible('ac2_update');
-      Event.simulateKey('ac2_input', 'keypress', {keyCode: Event.KEY_TAB});
-
+      kd(ac, Event.KEY_TAB);
       this.assertEqual('afterupdate:LI', $('ac2_input').value);
     });
   },
@@ -183,25 +210,35 @@ new Test.Unit.Runner({
     });
     this.assertInstanceOf(Ajax.Autocompleter, actoken);
 
-    Event.simulateKeys('actoken_input', 'abc');
+    //Event.simulateKeys('actoken_input', 'abc');
+    kd(actoken, 'a');
+    kd(actoken, 'b');
+    kd(actoken, 'c');
+    $('actoken_input').value = 'abc';
 
     this.wait(1000, function() {
-      Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+      kd(actoken, Event.KEY_TAB);
       this.assertEqual('test1', $('actoken_input').value);
-      Event.simulateKeys('actoken_input', ',abc');
+
+      //Event.simulateKeys('actoken_input', ',abc');
+      kd(actoken, ',');
+      kd(actoken, 'a');
+      kd(actoken, 'b');
+      kd(actoken, 'c');
+      $('actoken_input').value += ',abc';
+
       this.wait(1000, function() {
-        Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_DOWN});
-        Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+        kd(actoken, Event.KEY_DOWN);
+        kd(actoken, Event.KEY_TAB);
         this.assertEqual('test1,test2', $('actoken_input').value);
 
         // Simulating KEY_LEFT's prior to a 'b' doesn't work!  So slightly ugly here...
         $('actoken_input').value = 'test1b,test2';
         actoken.onObserverEvent();
         this.wait(1000, function() {
-          for (var index = 0; index < 2; ++index) {
-            Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_DOWN});
-          }
-          Event.simulateKey('actoken_input', 'keypress', {keyCode: Event.KEY_TAB});
+          kd(actoken, Event.KEY_DOWN);
+          kd(actoken, Event.KEY_DOWN);
+          kd(actoken, Event.KEY_TAB);
           this.assertEqual('test3,test2', $('actoken_input').value);
         });
       });
@@ -210,8 +247,9 @@ new Test.Unit.Runner({
 
 // Same integration test, results has no linebreaks
   testAjaxAutocompleterNoLinebreaksInResult: function() {
-    var ac = new Ajax.Autocompleter('ac_input_br', 'ac_update_br', '_autocomplete_result_nobr.html',
-        { method: 'get' }); //override so we can use a static for the result
+    var ac = new Ajax.Autocompleter('ac_input_br', 'ac_update_br', '_autocomplete_result_nobr.html', {
+      method: 'get'
+    }); //override so we can use a static for the result
     this.assertInstanceOf(Ajax.Autocompleter, ac);
 
     // box not visible
@@ -221,7 +259,12 @@ new Test.Unit.Runner({
     Event.simulateMouse('ac_input_br', 'click');
     this.assertNotVisible('ac_update_br');
 
-    Event.simulateKeys('ac_input_br', 'abcd');
+    kd(ac, 'a');
+    kd(ac, 'b');
+    kd(ac, 'c');
+    kd(ac, 'd');
+    ac.element.value = 'abcd';
+    //Event.simulateKeys('ac_input_br', 'abcd');
     this.assertEqual('abcd', $('ac_input_br').value);
 
     // check box popping up on input
@@ -236,14 +279,13 @@ new Test.Unit.Runner({
       // first entry should be selected
       this.assert(Element.hasClassName($('ac_update_br').firstChild.firstChild, 'selected'), 'Selected item should have a className of: selected');
 
-      Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_DOWN});
-
+      kd(ac, Event.KEY_DOWN);
       // second entry should be selected
       this.assert(!Element.hasClassName($('ac_update_br').firstChild.firstChild), 'Item should not have a className of: selected');
       this.assert(Element.hasClassName($('ac_update_br').firstChild.firstChild.nextSibling, 'selected'), 'Second entry should have a className of: selected');
 
       // check selecting with <TAB>
-      Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_TAB});
+      kd(ac, Event.KEY_TAB);
       this.assertEqual('test2', $('ac_input_br').value);
 
       // check box going away
@@ -251,7 +293,9 @@ new Test.Unit.Runner({
         this.assertNotVisible('ac_update_br');
 
         // check selecting with mouse click
-        Event.simulateKeys('ac_input_br', '3');
+        //Event.simulateKeys('ac_input_br', '3');
+        kd(ac, '3');
+        ac.element.value += '3';
         this.assertEqual('test23', $('ac_input_br').value);
 
         this.wait(1000, function() {
@@ -264,14 +308,21 @@ new Test.Unit.Runner({
             this.assertNotVisible('ac_update_br');
 
             // check cancelling with <ESC>
-            Event.simulateKeys('ac_input_br', 'abcd');
+            //Event.simulateKeys('ac_input_br', 'abcd');
+            kd(ac, 'a');
+            kd(ac, 'b');
+            kd(ac, 'c');
+            kd(ac, 'd');
+            ac.element.value += 'abcd';
 
             this.wait(1000, function() {
               this.assertVisible('ac_update_br');
               this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input_br').value);
 
-              Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_DOWN});
-              Event.simulateKey('ac_input_br', 'keypress', {keyCode: Event.KEY_ESC});
+              kd(ac, Event.KEY_DOWN);
+              Event.simulateKey('ac_input_br', 'keypress', {
+                keyCode: Event.KEY_ESC
+              });
 
               this.assertEqual('(GET <ME> INSTEAD)abcd', $('ac_input_br').value);
             });

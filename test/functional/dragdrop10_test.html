@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Untitled Document</title>
+  <style type="text/css">
+    td {
+      padding: 1em;
+    }
+
+    li {
+      border: 1px solid gray;
+      margin-bottom: 1em;
+      list-style: none;
+      padding: 0.25em;
+      background: #ffc;
+      cursor: move;
+    }
+
+    .drophover {
+      background: pink;
+    }
+  </style>
+  <script src="../../lib/prototype.js" type="text/javascript"></script>
+  <script src="../../src/scriptaculous.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    document.observe("dom:loaded", function() {
+      $$('li').each(function(li) {
+        new Draggable(li, {
+          revert: 'failure',
+          scroll: window
+        });
+      });
+
+      $$('.drop').each(function(dropzone) {
+        Droppables.add(dropzone, {
+          hoverclass: 'drophover'
+        });
+      });
+    });
+  </script>
+</head>
+<body>
+<table width="100%">
+  <tr>
+    <td width="50%">
+      <div class="drop">
+        <ul>
+          <li>A</li>
+          <li>
+            B
+            <ul>
+              <li>C</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </td>
+    <td>
+      <div class="drop">
+        <ul>
+          <li>D</li>
+          <li>
+            E
+            <ul>
+              <li>F</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

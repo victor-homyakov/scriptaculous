@@ -206,9 +206,6 @@ Test.Unit.Runner = Class.create({
     var o = this.options;
     o.resultsURL = this.parseResultsURLQueryParameter();
     o.tests = this.parseTestsQueryParameter();
-    if (o.testLog) {
-      o.testLog = $(o.testLog) || null;
-    }
     if (o.tests) {
       this.tests = [];
       var tests = o.tests;
@@ -228,8 +225,11 @@ Test.Unit.Runner = Class.create({
       }
     }
     this.currentTest = 0;
-    this.logger = new Test.Unit.Logger(o.testLog);
-    this.runTests.bind(this).delay(1);
+    if (document.loaded) {
+      this.startTests();
+    } else {
+      document.on("dom:loaded", this.startTests.bind(this));
+    }
   },
   parseResultsURLQueryParameter: function() {
     var query = window.location.search.parseQuery();
@@ -269,6 +269,10 @@ Test.Unit.Runner = Class.create({
       });
     }
   },
+  startTests: function() {
+    this.logger = new Test.Unit.Logger(this.options.testLog);
+    this.runTests();
+  },
   runTests: function() {
     var test = this.tests[this.currentTest];
     if (!test) {
@@ -289,7 +293,7 @@ Test.Unit.Runner = Class.create({
     } else {
       this.logger.finish(test.status(), test.summary());
       this.currentTest++;
-      delay = 1;
+      delay = 10;
     }
     this.runTests.bind(this).delay(delay / 1000); // FIX
   },
@@ -406,6 +410,17 @@ Test.Unit.Assertions = Class.create({
       this.error(e);
     }
   },
+  assertEnumNotEqual: function(expected, actual, message) {
+    message = message || "assertEnumNotEqual";
+    try {
+      $A(expected).length != $A(actual).length ||
+        expected.zip(actual).any(function(pair) {
+          return pair[0] != pair[1];
+        }) ? this.pass() : this.fail(message + ': ' + Test.Unit.inspect(actual) + ' was the same as ' + Test.Unit.inspect(expected));
+    } catch (e) {
+      this.error(e);
+    }
+  },
   assertPairEqual: function(pair) {
     return pair.all(Object.isArray) ? pair[0].zip(pair[1]).all(this.assertPairEqual, this) : pair[0] == pair[1];
   },
@@ -418,6 +433,19 @@ Test.Unit.Assertions = Class.create({
     try {
       expectedArray.length == actualArray.length &&
         expectedArray.zip(actualArray).all(this.assertPairEqual, this) ? this.pass() : this.fail(message + ': expected ' + Test.Unit.inspect(expected) + ', actual ' + Test.Unit.inspect(actual));
+    } catch (e) {
+      this.error(e);
+    }
+  },
+  assertHashNotEqual: function(expected, actual, message) {
+    expected = $H(expected);
+    actual = $H(actual);
+    var expectedArray = expected.toArray().sort(), actualArray = actual.toArray().sort();
+    message = message || "assertHashNotEqual";
+    // from now we recursively zip & compare nested arrays
+    try {
+      expectedArray.length == actualArray.length &&
+        expectedArray.zip(actualArray).all(this.assertPairEqual, this) ? this.fail(message + ': ' + Test.Unit.inspect(actual) + ' was the same as ' + Test.Unit.inspect(expected)) : this.pass();
     } catch (e) {
       this.error(e);
     }
@@ -500,6 +528,15 @@ Test.Unit.Assertions = Class.create({
     var regex = new RegExp(expected);
     try {
       (regex.exec(actual)) ? this.pass() : this.fail(message + ' : regex: "' + Test.Unit.inspect(expected) + ' did not match: ' + Test.Unit.inspect(actual) + '"');
+    } catch (e) {
+      this.error(e);
+    }
+  },
+  assertNoMatch: function(expected, actual, message) {
+    message = message || 'assertNoMatch';
+    var regex = new RegExp(expected);
+    try {
+      regex.exec(actual) ? this.fail(message + ' : regex: "' + Test.Unit.inspect(expected) + ' matched: ' + Test.Unit.inspect(actual) + '"') : this.pass();
     } catch (e) {
       this.error(e);
     }
